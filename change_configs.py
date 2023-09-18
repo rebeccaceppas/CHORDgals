@@ -50,8 +50,8 @@ with open("simulate.yaml") as istream:
     ymldoc['pipeline']['tasks'][4]['params']['ndays'] = float(ndays)
     ymldoc['cluster']['directory'] = output_folder+'/simulate_info'
     ymldoc['pipeline']['tasks'][1]['params']['product_directory'] = output_folder
-    ymldoc['pipeline']['tasks'][2]['params']['maps']['files'][0] = output_folder+'/Up_Gal.h5'
-    ymldoc['pipeline']['tasks'][2]['params']['maps']['files'][1] = output_folder+'/Up_Sky.h5'
+    ymldoc['pipeline']['tasks'][2]['params']['maps'][0]['files'][0] = output_folder+'/Up_Gal.h5'
+    ymldoc['pipeline']['tasks'][2]['params']['maps'][0]['files'][1] = output_folder+'/Up_Sky.h5'
     ymldoc['pipeline']['tasks'][3]['params']['output_name'] = output_folder+'/sstream.h5'
     ymldoc['pipeline']['tasks'][4]['params']['output_name'] = output_folder+'/sstream_gaussian_noise.h5'
     ymldoc['pipeline']['tasks'][6]['params']['nside'] = nside
