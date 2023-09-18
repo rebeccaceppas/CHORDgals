@@ -171,7 +171,7 @@ def get_fine_freqs(observing_freqs):
     fine_freqs = np.linspace(fmin, fmax, num)
     return  fine_freqs
 
-def get_resampled_profiles(V, S, z, nfreq = 10000):
+def get_resampled_profiles(V, S, z, fstate, nfreq = 10000):
     '''Takes opened galaxy catalogue and returns finely re-sampled profiles in frequency space.
     Inputs:
         V, S (np.ndarray): velocity and flux obtained from read_catalogue function.
@@ -184,6 +184,7 @@ def get_resampled_profiles(V, S, z, nfreq = 10000):
     # instantiating array to hold profiles
     profiles = np.zeros((len(S), nfreq))
     
+    # here should we be using the fine frequencies instead?
     vel_new = np.linspace(-1000, 1000, nfreq) 
     velocities, fluxes = [], []
 
@@ -197,6 +198,19 @@ def get_resampled_profiles(V, S, z, nfreq = 10000):
     profiles.convert_units()
     gal_freqs = profiles.obs_freq
     gal_temps = profiles.T
+
+    '''alternative method
+    profiles = GalaxyCatalog(V, S, z)
+    profiles.convert_units()
+    gal_freqs = profiles.obs_freq
+    gal_temps = profiles.T
+
+    fine_freqs = np.flip(get_fine_freqs(fstate.frequencies))
+    temperatures = np.interp(fine_freqs, gal_freqs, gal_temps)
+
+    return fine_freqs, temperatures
+    
+    '''
 
     return gal_freqs, gal_temps
 
@@ -295,14 +309,14 @@ def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax,
     # getting velocity and flux from catalogue
     V, S, z, ra, dec = read_catalogue(catalogue_filepath)
 
+    fstate = FreqState()
+    fstate.freq = (fmax, fmin, nfreq)
+
     # resampling and converting into profiles in frequency space
-    freqs, profiles = get_resampled_profiles(V, S, z)
+    freqs, profiles = get_resampled_profiles(V, S, z, fstate)
 
     # generating heights
     heights = upchannelize(freqs, profiles, U, R_filepath, norm_filepath)
-
-    fstate = FreqState()
-    fstate.freq = (fmax, fmin, nfreq)
 
     pol="full"
 
