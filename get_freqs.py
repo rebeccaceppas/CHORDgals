@@ -69,6 +69,6 @@ with open("outputs.yaml") as istream:
     ymldoc['telescope']['tsys'] = tsys
 istream.close()
 
-with open(output_folder+"outputs.yaml", "w") as ostream:
+with open(output_folder+"/outputs.yaml", "w") as ostream:
     yaml.dump(ymldoc, ostream, default_flow_style=False, sort_keys=False)
 ostream.close()
