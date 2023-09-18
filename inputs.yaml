@@ -1,0 +1,21 @@
+frequencies:
+  U: 2                        # upchannelization factor
+  fmax: 1420                  # upper end of frequency band (inclusive)
+  fmin: 1419                  # lower end of frequency band (not inclusive)
+
+telescope:
+  grid_ew: 11                 # number of dishes in the ew direction
+  grid_ns: 6                  # number of dishes in the ns direction
+  spacing_ew: 6.3             # separation of dishes in ew direction (metres)
+  spacing_ns: 9               # separation of dishes in ns direction (metres)
+  observing_dec: 45
+  tsys: 30
+
+mapmaking:
+  ndays: 1                    # number of observing days for noise estimation
+  nside: 128                  # nside for healpix map
+  
+process:
+  output_folder: "."            # folder to save outputs to
+  catalog: "./HI_Catalog.txt"    # path to HI galaxy catalog
+

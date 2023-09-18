@@ -1,0 +1,17 @@
+frequencies:
+  U: 2
+  fmax: 1420.0
+  fmin: 1419.0
+  nfreqmaps: 2
+fstate:
+  f_start: 1420.0
+  f_end: 1400.25
+  nfreq: 4
+telescope:
+  elevation: -100
+  nside: 128
+  ndays: 1
+  tsys: 30
+process:
+  output_folder: "."
+  catalog: "./HI_Catalog.txt"

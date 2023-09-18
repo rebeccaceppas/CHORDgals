@@ -1,0 +1,48 @@
+config:
+  output_directory: /home/rebeccac/scratch/pipeline
+  name: pipeline
+  nodes: 6
+  time: 60
+  opmnum: 3
+  pernode: 16
+  mem: 192000M
+  system: cedar
+  queue_sys: slurm
+  account: rrg-kmsmith
+  beamtransfers: true
+  skip_svd: true
+  kltransform: false
+  psfisher: false
+  svcut: 1e-6
+  polsvcut: 1e-6
+  mem_chunk: 1.0
+  chunk_cache_size: 256
+telescope:
+  type:
+    class: CHORD64Survey
+    module: chord_pipeline.core.telescope
+  freq_start: 1420
+  freq_end: 1419
+  num_freq: 4
+  elevation_start: -100
+  elevation_end: -100
+  npointings: 1
+  auto_correlation: true
+  tsys_flat: 30.0
+  ndays: 13
+  min_u: 6.0
+  min_v: 6.0
+  skip_pol: false
+  skip_V: false
+  beam_cache_size: 1000
+  layout_spec:
+    type: grid
+    grid_ew: 11
+    grid_ns: 6
+    spacing_ew: 6.3
+    spacing_ns: 10
+  beam_spec:
+    type: airy
+    diameter: 6.0
+    crosspol_type: scaled
+    crosspol_scale_dB: -60.0
