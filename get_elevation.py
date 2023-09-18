@@ -21,14 +21,15 @@ def get_elevation(center_dec):
 yaml_input_file = open("inputs.yaml")
 yaml_input = yaml.safe_load(yaml_input_file)
 center_dec = yaml_input['telescope']['observing_dec']
+output_folder = yaml_input['process']['output_folder']
 
 elevation = get_elevation(center_dec)
 
-with open("outputs.yaml") as istream:
+with open(output_folder+"/outputs.yaml") as istream:
     ymldoc = yaml.safe_load(istream)
     ymldoc['telescope']['elevation'] = float(elevation)
 istream.close()
 
-with open("outputs.yaml", "w") as ostream:
+with open(output_folder+"/outputs.yaml", "w") as ostream:
     yaml.dump(ymldoc, ostream, default_flow_style=False, sort_keys=False)
 ostream.close()

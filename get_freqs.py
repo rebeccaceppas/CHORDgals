@@ -30,17 +30,23 @@ def get_freqs(fmax=1500, fmin=300, U=1):
     
     return fstate
 
-yaml_input_file = open("inputs.yaml")
-yaml_input = yaml.safe_load(yaml_input_file)
-U = yaml_input['frequencies']['U']
-fmax = yaml_input['frequencies']['fmax']
-fmin = yaml_input['frequencies']['fmin']
-output_folder = yaml_input['process']['output_folder']
-nside = yaml_input['mapmaking']['nside']
-ndays = yaml_input['mapmaking']['ndays']
-catalog = yaml_input['process']['catalog']
-tsys = yaml_input['telescope']['tsys']
-yaml_input_file.close()
+
+with open("inputs.yaml") as inp:
+    yaml_input = yaml.safe_load(inp)
+    U = yaml_input['frequencies']['U']
+    fmax = yaml_input['frequencies']['fmax']
+    fmin = yaml_input['frequencies']['fmin']
+    output_folder = yaml_input['process']['output_folder']
+    nside = yaml_input['mapmaking']['nside']
+    ndays = yaml_input['mapmaking']['ndays']
+    catalog = yaml_input['process']['catalog']
+    tsys = yaml_input['telescope']['tsys']
+inp.close()
+
+# saving an input file in the output directory
+with open(output_folder+"/inputs.yaml", "w") as inp_save:
+    yaml.dump(yaml_input, inp_save, default_flow_style=False, sort_keys=False)
+inp_save.close()
 
 fstate = get_freqs(fmax, fmin, U)
 
