@@ -316,7 +316,7 @@ def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax,
     freqs, profiles = get_resampled_profiles(V, S, z, fstate)
 
     # generating heights
-    heights = upchannelize(freqs, profiles, U, R_filepath, norm_filepath)
+    heights = upchannelize(profiles, U, R_filepath, norm_filepath)
 
     pol="full"
 
@@ -345,7 +345,7 @@ def channelize_map(U, map_filepaths, R_filepath, norm_filepath, fmax, fmin, nfre
         func = interpolate.interp1d(freqs, Map[:, 0, i])
         pixels.append(func(freq))
     
-    heights = upchannelize(freqs, pixels, U, R_filepath, norm_filepath)
+    heights = upchannelize(pixels, U, R_filepath, norm_filepath)
     fstate = FreqState()
     fstate.freq = (fmax, fmin, nfreq)  # (start, end (not inclusive), number of channels)
 
