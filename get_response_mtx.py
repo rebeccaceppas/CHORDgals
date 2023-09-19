@@ -6,13 +6,16 @@ from FreqState import FreqState
 import yaml
 import numpy as np
 
-yaml_output_file = open("outputs.yaml")
+yaml_input_file = open("inputs.yaml")
+yaml_input = yaml.safe_load(yaml_input_file)
+output_folder = yaml_input['process']['output_folder']
+
+yaml_output_file = open(output_folder+"/outputs.yaml")
 yaml_output = yaml.safe_load(yaml_output_file)
 fmax = yaml_output['frequencies']['fmax']
 fmin = yaml_output['frequencies']['fmin']
 nfreq = yaml_output['fstate']['nfreq']
 U = yaml_output['frequencies']['U']
-output_folder = yaml_output['process']['output_folder']
 yaml_output_file.close()
 
 # these are the frequencies we will observe
