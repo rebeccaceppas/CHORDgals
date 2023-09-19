@@ -26,13 +26,6 @@ function parse_yaml {
    }'
 }
 
-eval $(parse_yaml outputs.yaml)
-fmin=$(echo $frequencies_fmin)
-fmax=$(echo $frequencies_fmax)
-nside=$(echo $telescope_nside)
-nfreq_maps=$(echo $frequencies_nfreqmaps)
-output_folder=$(echo $process_output_folder)
-
 ############################################ Step 0 - set up  #################################################
 echo "-------------- Step 0 - Set up --------------"
 
@@ -54,6 +47,13 @@ python get_elevation.py
 echo "Setting up configuration files..."
 python change_configs.py
 
+eval $(parse_yaml outputs.yaml)
+fmin=$(echo $frequencies_fmin)
+fmax=$(echo $frequencies_fmax)
+nside=$(echo $telescope_nside)
+nfreq_maps=$(echo $frequencies_nfreqmaps)
+output_folder=$(echo $process_output_folder)
+
 ######################################## Step 1 - tool computation  ############################################
 echo "-------------- Step 1 - Tool computation --------------"
 
@@ -63,7 +63,7 @@ echo "-------------- Step 1 - Tool computation --------------"
 echo "Computing the beam transfer matrices with driftscan..."
 echo "Computing the response matrix and normalization vector..."
 source /dev/null
-cd /home/rebeccac/scratch/response2
+cd /home/rebeccac/scratch/pipeline
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 srun python /project/6002277/ssiegel/chord/chord_env/modules/chord/chord_pipeline/2022.11/lib/python3.10/site-packages/drift/scripts/makeproducts.py run $output_folder/beam.yaml &> $output_folder/beam.log &
 python get_response_mtx.py &
