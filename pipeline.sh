@@ -47,12 +47,15 @@ python get_elevation.py
 echo "Setting up configuration files..."
 python change_configs.py
 
-eval $(parse_yaml outputs.yaml)
+eval $(parse_yaml inputs.yaml)
+output_folder=$(echo $process_output_folder)
+cd $output_folder
+
+eval $(parse_yaml $output_folder/outputs.yaml)
 fmin=$(echo $frequencies_fmin)
 fmax=$(echo $frequencies_fmax)
 nside=$(echo $telescope_nside)
 nfreq_maps=$(echo $frequencies_nfreqmaps)
-output_folder=$(echo $process_output_folder)
 
 ######################################## Step 1 - tool computation  ############################################
 echo "-------------- Step 1 - Tool computation --------------"
