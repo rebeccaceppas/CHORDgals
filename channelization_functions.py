@@ -1,6 +1,7 @@
 import numpy as np
 import numexpr as ne 
 import matplotlib.pyplot as plt
+import astropy.units as u
 from unit_converter import GalaxyCatalog # to convert profiles
 import Generate_HI_Spectra as g
 import h5py
@@ -167,11 +168,10 @@ def read_catalogue(file):
 def get_fine_freqs(observing_freqs):
     fmax = np.max(observing_freqs)
     fmin = np.min(observing_freqs)
-    num = len(observing_freqs) * 3
-    fine_freqs = np.linspace(fmin, fmax, num)
-    return  fine_freqs
+    dc = np.abs(observing_freqs[0] - observing_freqs[1]) # getting a negative dc 
+    return np.arange(fmax, fmin, dc / 3) # making the frequency resolution = 1/3 dc 
 
-def get_resampled_profiles(V, S, z, fstate, nfreq = 10000):
+def get_resampled_profiles(V, S, z, fine_freqs):
     '''Takes opened galaxy catalogue and returns finely re-sampled profiles in frequency space.
     Inputs:
         V, S (np.ndarray): velocity and flux obtained from read_catalogue function.
@@ -182,37 +182,18 @@ def get_resampled_profiles(V, S, z, fstate, nfreq = 10000):
         profiles (np.ndarray): the galaxy profiles from the catalogue '''
     
     # instantiating array to hold profiles
-    profiles = np.zeros((len(S), nfreq))
-    
-    # here should we be using the fine frequencies instead?
-    vel_new = np.linspace(-1000, 1000, nfreq) 
-    velocities, fluxes = [], []
+    resampled_profiles = np.zeros((len(S), len(fine_freqs)))
+
+    # converting the units
+    profile = GalaxyCatalog(np.array([V, S]).T, z)
+    profile.convert_units()
 
     for i in range(len(V)):
+        
+        resampled_profiles[i] = np.interp(fine_freqs[::-1], profile.obs_freq[::-1], profile.T[::-1])[::-1]
 
-        flux = np.interp(vel_new, V[i], S[i])
-        velocities.append(vel_new)
-        fluxes.append(flux)
-
-    profiles = GalaxyCatalog(vel_new, fluxes, z)
-    profiles.convert_units()
-    gal_freqs = profiles.obs_freq
-    gal_temps = profiles.T
-
-    '''alternative method
-    profiles = GalaxyCatalog(V, S, z)
-    profiles.convert_units()
-    gal_freqs = profiles.obs_freq
-    gal_temps = profiles.T
-
-    fine_freqs = np.flip(get_fine_freqs(fstate.frequencies))
-    temperatures = np.interp(fine_freqs, gal_freqs, gal_temps)
-
-    return fine_freqs, temperatures
-    
-    '''
-
-    return gal_freqs, gal_temps
+    # outputs them from high to low freq
+    return resampled_profiles
 
 def get_response_matrix(fine_freqs, observing_freqs, U, M = 4, N = 4096, viewmatrix = False):
     '''Gets the response matrix and the channels being observed on after upchannelization
@@ -221,6 +202,7 @@ def get_response_matrix(fine_freqs, observing_freqs, U, M = 4, N = 4096, viewmat
         fine_freqs (np.ndarray): frequencies outputted by get_fine_freqs function
         observing_freqs (np.ndarray): location of fine channels in frequency space
         U (int): upchannelization factor, # of fine channels per coarse channel
+        min_obs_freq, max_obs_freq (int): sets the observing range, determines coarse channels used
         M (int): # of taps for PFB
         N (int): chunk length for PFB
         viewmatrix (boolean): sets whether response matrix should be viewed
@@ -252,9 +234,7 @@ def get_response_matrix(fine_freqs, observing_freqs, U, M = 4, N = 4096, viewmat
     # removing frequency ripples from coarse channelization
     df = fine_freqs[1] - fine_freqs[0]
     dc = np.abs(observing_freqs[1] - observing_freqs[0])
-    freqs_null = np.arange(observing_freqs.min() - 2 * dc, 
-                           observing_freqs.max() + 2 * dc, 
-                           np.abs(df))    
+    freqs_null = np.arange(observing_freqs.min() - 2 * dc, observing_freqs.max() + 2 * dc, np.abs(df))
     f_null = np.reshape(freq_unit_strip(freqs_null), (freqs_null.size, 1))
     null = freqs_null * 0 + 1
 
@@ -290,10 +270,6 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     # getting response for each profile
     for i in range(len(profiles)):
-
-        print('R.shape =', R.shape)
-        print('profiles[i][::-1].shape = ', profiles[i][::-1].shape)
-        
         response = np.matmul(np.abs(R)**2, profiles[i][::-1])
 
         if U == 1: k = 1.216103148777748e-10
@@ -309,7 +285,7 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     return heights
 
-def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax, fmin, nfreq, nside, save_title):
+def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax, fmin, nfreq, nside, save_title, fine_freqs):
     # getting velocity and flux from catalogue
     V, S, z, ra, dec = read_catalogue(catalogue_filepath)
 
@@ -317,37 +293,31 @@ def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax,
     fstate.freq = (fmax, fmin, nfreq)
 
     # resampling and converting into profiles in frequency space
-    freqs, profiles = get_resampled_profiles(V, S, z, fstate)
+    profiles = get_resampled_profiles(V, S, z, fine_freqs) # rewrite to get only profiles
 
     # generating heights
     heights = upchannelize(profiles, U, R_filepath, norm_filepath)
 
-    pol="full"
+    pol = "full"
 
-    map_catalog(fstate, heights, nside, pol, ra, dec, 
-                      filename=save_title, write=True)
+    map_catalog(fstate, heights, nside, pol, ra, dec, filename = save_title, write = True)
 
-
-def channelize_map(U, map_filepaths, R_filepath, norm_filepath, fmax, fmin, nfreq, save_title):
+def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_filepath, save_title, fine_freqs):
     ''' Opening map '''
-    f = h5py.File(map_filepaths[0])
+    f = h5py.File(map_filepath)
     Map = np.array(f['map'])  # the healpix map
-    f.close()
-
-    f = h5py.File(map_filepaths[1])
-    Map += np.array(f['map'])
     idx = f['index_map']
     ff = np.array(idx['freq'])
     freqs = np.array([ii[0] for ii in ff])  # the frequencies of each slice
     f.close()
 
     ''' re-sampling each pixel '''
-    ### we should use the pre-computed fine frequencies here instead ###
-    freq = np.linspace(freqs.min(), freqs.max(), 1000) # new frequencies
+    #freq = np.linspace(freqs.min(), freqs.max(), 1000) # new frequencies
     pixels = []
-    for i in range(49152):
+    npix = 12*nside**2
+    for i in range(npix):
         func = interpolate.interp1d(freqs, Map[:, 0, i])
-        pixels.append(func(freq))
+        pixels.append(func(fine_freqs))
     
     heights = upchannelize(pixels, U, R_filepath, norm_filepath)
     fstate = FreqState()
@@ -355,7 +325,7 @@ def channelize_map(U, map_filepaths, R_filepath, norm_filepath, fmax, fmin, nfre
 
     npol = 4
 
-    map_ = np.zeros((nfreq, npol, len(pixels)), dtype=np.float64)
+    map_ = np.zeros((nfreq, npol, npix), dtype=np.float64)
 
     for i in range(len(heights)):
         map_[:, 0, i] = heights[i]
@@ -365,4 +335,5 @@ def channelize_map(U, map_filepaths, R_filepath, norm_filepath, fmax, fmin, nfre
 
 
         
+
 

@@ -1,7 +1,9 @@
 import yaml
 import sys
-from channelization_functions import channelize_catalogue, channelize_map
+from channelization_functions import channelize_catalogue, channelize_map, get_fine_freqs
 from FreqState import FreqState
+import h5py
+import numpy as np
 
 yaml_input_file = open("inputs.yaml")
 input = yaml.safe_load(yaml_input_file)
@@ -27,16 +29,31 @@ fstate.freq = (fmax, fmin, nfreq)
 args = sys.argv
 map = args[1]
 
-maps = [map_filepath+'/foregrounds.h5',
-        map_filepath+'/synch_map.h5']
+
+f_fg = h5py.File(map_filepath+'/foregrounds.h5')
+Map_fg = np.array(f_fg['map'])  # the healpix map
+f_fg.close()
+
+f_s = h5py.File(map_filepath+'/synch_map.h5')
+Map_s = np.array(f_s['map'])  # the healpix map
+f_s.close()
+
+sky_map = Map_fg + Map_s
+
+with h5py.File(map_filepath+'/sky_map.h5', 'w') as f:
+    f.attrs["__memh5_distributed_file"] = True
+    dset = f.create_dataset("map", data=sky_map)
+
+sky_file = map_filepath+'/sky_map.h5'
+
+fine_freqs = get_fine_freqs(fstate.frequencies)
 
 if map == 1:
     # upchannelize a sky map
     save_title = norm_filepath+'/Up_Sky.h5'
-    channelize_map(U, maps, R_filepath, norm_filepath, fmax, fmin, nfreq, save_title)
-
+    channelize_map(U, fmax, fmin, nfreq, nside, sky_file, R_filepath, norm_filepath, save_title, fine_freqs)
 
 else:
     # upchannelize the galaxy catalog profiles
     save_title = norm_filepath+'/Up_Gal.h5'
-    channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax, fmin, nfreq, nside, save_title)
+    channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax, fmin, nfreq, nside, save_title, fine_freqs)
