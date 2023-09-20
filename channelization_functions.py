@@ -290,6 +290,10 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     # getting response for each profile
     for i in range(len(profiles)):
+
+        print('R.shape =', R.shape)
+        print('profiles[i][::-1].shape = ', profiles[i][::-1].shape)
+        
         response = np.matmul(np.abs(R)**2, profiles[i][::-1])
 
         if U == 1: k = 1.216103148777748e-10
