@@ -3,7 +3,12 @@ import sys
 from channelization_functions import channelize_catalogue, channelize_map
 from FreqState import FreqState
 
-yaml_file = open('outputs.yaml')
+yaml_input_file = open("inputs.yaml")
+input = yaml.safe_load(yaml_input_file)
+output_folder = input['process']['output_folder']
+yaml_input_file.close()
+
+yaml_file = open(output_folder+'/outputs.yaml')
 output = yaml.safe_load(yaml_file)
 U = output['frequencies']['U']
 R_filepath = output['process']['output_folder'] + '/R.npy'
