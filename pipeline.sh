@@ -63,14 +63,14 @@ echo "-------------- Step 1 - Tool computation --------------"
 # computing the beam transfer matrices
 # computing the response matrix R and the normalization vector norm
 # set up so that they will both be computed simultaneously
-echo "Computing the beam transfer matrices with driftscan..."
+#echo "Computing the beam transfer matrices with driftscan..."
 echo "Computing the response matrix and normalization vector..."
 source /dev/null
 cd /home/rebeccac/scratch/pipeline
-export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-srun python /project/6002277/ssiegel/chord/chord_env/modules/chord/chord_pipeline/2022.11/lib/python3.10/site-packages/drift/scripts/makeproducts.py run $output_folder/beam.yaml &> $output_folder/beam.log &
-python get_response_mtx.py &
-wait
+#export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+#srun python /project/6002277/ssiegel/chord/chord_env/modules/chord/chord_pipeline/2022.11/lib/python3.10/site-packages/drift/scripts/makeproducts.py run $output_folder/beam.yaml &> $output_folder/beam.log &
+python get_response_mtx.py #&
+#wait
 
 ######################################## Step 2 - map creation  ############################################
 echo "-------------- Step 2 - Map creation --------------"
@@ -102,8 +102,6 @@ srun python /project/6002277/ssiegel/chord/chord_env/modules/chord/chord_pipelin
 
 ######################################## Step 5 - Map-making  ############################################
 #caput-pipeline
-
-
 
 
 
