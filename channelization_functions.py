@@ -185,7 +185,7 @@ def get_resampled_profiles(V, S, z, fine_freqs):
     resampled_profiles = np.zeros((len(S), len(fine_freqs)))
 
     # converting the units
-    profile = GalaxyCatalog(np.array([V, S]).T, z)
+    profile = GalaxyCatalog(V, S, z)
     profile.convert_units()
 
     for i in range(len(V)):
