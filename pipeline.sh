@@ -82,11 +82,11 @@ cora-makesky gaussianfg --nside=$nside --freq $fmax $fmin $nfreq_maps --pol=full
 
 # getting upchannelized sky maps
 echo "Up-channelizing cora simulated maps..."
-python get_upchannelized_map.py 1 $nfreq_maps
+python get_upchannelized_map.py 1
 
 # getting upchannelized galaxy profiles
 echo "Up-channelizing galaxy catalog..."
-python get_upchannelized_map.py 0 $nfreq_maps
+python get_upchannelized_map.py 0
 
 ######################################## Step 3 - observation  ############################################
 echo "-------------- Step 3 - Observation --------------"
