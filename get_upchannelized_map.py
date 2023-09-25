@@ -4,6 +4,7 @@ from channelization_functions import channelize_catalogue, channelize_map, get_f
 from FreqState import FreqState
 import h5py
 import numpy as np
+from save_galaxy_map import write_map
 
 yaml_input_file = open("inputs.yaml")
 input = yaml.safe_load(yaml_input_file)
@@ -40,9 +41,7 @@ f_s.close()
 
 sky_map = Map_fg + Map_s
 
-with h5py.File(map_filepath+'/sky_map.h5', 'w') as f:
-    f.attrs["__memh5_distributed_file"] = True
-    dset = f.create_dataset("map", data=sky_map)
+write_map(map_filepath+'/sky_map.h5', sky_map, fstate.frequencies, fstate.freq_width, include_pol=True)
 
 sky_file = map_filepath+'/sky_map.h5'
 
