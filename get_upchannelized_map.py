@@ -29,7 +29,7 @@ fstate.freq = (fmax, fmin, nfreq)
 
 args = sys.argv
 map = args[1]
-
+nfreq_maps = args[2]
 
 f_fg = h5py.File(map_filepath+'/foregrounds.h5')
 Map_fg = np.array(f_fg['map'])  # the healpix map
@@ -38,6 +38,9 @@ f_fg.close()
 f_s = h5py.File(map_filepath+'/synch_map.h5')
 Map_s = np.array(f_s['map'])  # the healpix map
 f_s.close()
+
+map_freqs = FreqState()
+map_freqs.freq(fmax, fmin, nfreq_maps)
 
 sky_map = Map_fg + Map_s
 
@@ -50,7 +53,7 @@ fine_freqs = get_fine_freqs(fstate.frequencies)
 if map == 1:
     # upchannelize a sky map
     save_title = norm_filepath+'/Up_Sky.h5'
-    channelize_map(U, fmax, fmin, nfreq, nside, sky_file, R_filepath, norm_filepath, save_title, fine_freqs)
+    channelize_map(U, fmax, fmin, nfreq, nside, sky_file, R_filepath, norm_filepath, save_title, fine_freqs, map_freqs)
 
 else:
     # upchannelize the galaxy catalog profiles

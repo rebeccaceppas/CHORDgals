@@ -302,13 +302,14 @@ def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax,
 
     map_catalog(fstate, heights, nside, pol, ra, dec, filename = save_title, write = True)
 
-def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_filepath, save_title, fine_freqs):
+def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_filepath, save_title, fine_freqs, map_freqs):
     ''' Opening map '''
     f = h5py.File(map_filepath)
     Map = np.array(f['map'])  # the healpix map
     idx = f['index_map']
     ff = np.array(idx['freq'])
     freqs = np.array([ii[0] for ii in ff])  # the frequencies of each slice
+    print(freqs)
     f.close()
 
     ''' re-sampling each pixel '''
@@ -316,7 +317,7 @@ def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_f
     pixels = []
     npix = 12*nside**2
     for i in range(npix):
-        func = interpolate.interp1d(freqs, Map[:, 0, i])
+        func = interpolate.interp1d(map_freqs, Map[:, 0, i])
         pixels.append(func(fine_freqs))
     
     heights = upchannelize(pixels, U, R_filepath, norm_filepath)
