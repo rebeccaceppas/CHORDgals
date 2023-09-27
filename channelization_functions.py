@@ -126,7 +126,7 @@ def get_chans(min_freq, max_freq):
     min_chan = np.floor(freq_unit_strip(min_freq))
     max_chan = np.ceil(freq_unit_strip(max_freq))
     
-    return np.arange(min_chan, max_chan + 1)
+    return np.arange(max_chan, min_chan, -1)
 
 # Relevant functions start below this line!
 # --------------------------------------------------------
@@ -190,7 +190,7 @@ def get_resampled_profiles(V, S, z, fine_freqs):
 
     for i in range(len(V)):
         
-        resampled_profiles[i] = np.interp(fine_freqs[::-1], profile.obs_freq[::-1], profile.T[::-1])[::-1]
+        resampled_profiles[i] = np.interp(fine_freqs[::-1], profile.obs_freq[::-1][i], profile.T[::-1][i])[::-1]
 
     # outputs them from high to low freq
     return resampled_profiles
@@ -213,10 +213,13 @@ def get_response_matrix(fine_freqs, observing_freqs, U, M = 4, N = 4096, viewmat
     
     # setting the coarse channels
     coarse_chans = get_chans(observing_freqs.min(), observing_freqs.max())
+    print('coarse_chans ', coarse_chans)
 
     # stripping units and reshaping frequencies and channels
     f = np.reshape(freq_unit_strip(fine_freqs[::-1]), (fine_freqs.size, 1))
     c = np.reshape(coarse_chans, (1, len(coarse_chans))).astype(int)
+    print(c.shape)
+    print(f.shape)
 
     # generating response matrix - will eventually replace this step to simply load up the needed matrix file
     R = response_mtx(c, f, M, N, U)
@@ -266,7 +269,9 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     # loading in R, norm, and chans
     R = np.load(R_filepath)
+    print('R.shape ', R.shape)
     norm = np.load(norm_filepath)
+    print('norm.shape ', norm.shape)
 
     # getting response for each profile
     for i in range(len(profiles)):
@@ -300,6 +305,8 @@ def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax,
 
     pol = "full"
 
+    print(save_title)
+
     map_catalog(fstate, heights, nside, pol, ra, dec, filename = save_title, write = True)
 
 def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_filepath, save_title, fine_freqs):
@@ -311,6 +318,10 @@ def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_f
     freqs = np.array([ii[0] for ii in ff])  # the frequencies of each slice
     f.close()
 
+    print('freqs')
+    print(freqs)
+    print()
+
     ''' re-sampling each pixel '''
     #freq = np.linspace(freqs.min(), freqs.max(), 1000) # new frequencies
     pixels = []
@@ -320,10 +331,16 @@ def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_f
         pixels.append(func(fine_freqs))
     
     heights = upchannelize(pixels, U, R_filepath, norm_filepath)
+    print('heights')
+    print(np.asarray(heights).shape)
+    print()
+
     fstate = FreqState()
     fstate.freq = (fmax, fmin, nfreq)  # (start, end (not inclusive), number of channels)
 
     npol = 4
+
+    print('nfreq = ', nfreq)
 
     map_ = np.zeros((nfreq, npol, npix), dtype=np.float64)
 
