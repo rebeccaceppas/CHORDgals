@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=16
 #SBATCH --cpus-per-task=3
 #SBATCH --mem=192000M
-#SBATCH --time=1:00:00
+#SBATCH --time=4:00:00
 #SBATCH --job-name=pipeline_test
 #SBATCH --output=/home/rebeccac/scratch/pipeline/pipeline.out
 
@@ -65,6 +65,7 @@ echo "-------------- Step 1 - Tool computation --------------"
 # set up so that they will both be computed simultaneously
 #echo "Computing the beam transfer matrices with driftscan..."
 echo "Computing the response matrix and normalization vector..."
+echo "Computing the beam transfer matricess..."
 source /dev/null
 cd /home/rebeccac/scratch/pipeline
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
@@ -73,7 +74,7 @@ python get_response_mtx.py &
 wait
 
 ######################################## Step 2 - map creation  ############################################
-echo "-------------- Step 2 - Map creation --------------"
+echo "---------------- Step 2 - Map creation ----------------"
 
 # cora makesky map components
 echo "Generating sky maps with cora..."
@@ -89,19 +90,16 @@ echo "Up-channelizing galaxy catalog..."
 python get_upchannelized_map.py 0
 
 ######################################## Step 3 - observation  ############################################
-echo "-------------- Step 3 - Observation --------------"
+echo "----------------- Step 3 - Observation -----------------"
 
 echo "Performing observation with caput..."
 srun python /project/6002277/ssiegel/chord/chord_env/modules/chord/chord_pipeline/2022.11/lib/python3.10/site-packages/caput/scripts/runner.py run $output_folder/simulate.yaml &> $output_folder/simulate.log
 
-# right now this also gets the dirty map
-
 ######################################## Step 4 - Noise  ############################################
-#python get_noise.py
+echo "--------------- Step 4 - Normalized Noise ---------------"
 
+echo "Getting noisy visibilities and noisy dirty map..."
+python get_noise.py
 
-######################################## Step 5 - Map-making  ############################################
-#caput-pipeline
-
-
-
+echo " "
+echo "COMPLETE"
