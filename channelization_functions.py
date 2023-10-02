@@ -119,7 +119,7 @@ def freq_unit_add(f_bar):
     '''adds frequency units (MHz) to unitless quantities'''
     return f_bar / (4096 * 0.417 * 0.001) + 300
 
-def get_freqs(fmax=1500, fmin=300, U=1):
+def get_freqs(fmax=1500, fmin=300):
     '''
     Inputs
     ------
@@ -135,9 +135,8 @@ def get_freqs(fmax=1500, fmin=300, U=1):
 
     # calculations
     coarse_df = 0.586
-    df = coarse_df / U
 
-    nfreq = int(np.ceil((fmax - fmin)/df))
+    nfreq = int(np.floor((fmax - fmin)/coarse_df))
 
     fstate = FreqState()
     fstate.freq = (fmax, fmin, nfreq)
@@ -211,7 +210,7 @@ def get_resampled_profiles(V, S, z, fine_freqs):
     # outputs them from high to low freq
     return resampled_profiles
 
-def get_response_matrix(fine_freqs, observing_freqs, U, M = 4, N = 4096, viewmatrix = False):
+def get_response_matrix(fine_freqs, fmax, fmin, U, M = 4, N = 4096, viewmatrix = False):
     '''Gets the response matrix and the channels being observed on after upchannelization
     
     Inputs:
@@ -228,7 +227,7 @@ def get_response_matrix(fine_freqs, observing_freqs, U, M = 4, N = 4096, viewmat
         norm (np.ndarray): channelization envelope to be divided out for normalization '''
     
     # setting the coarse channels
-    coarse_chans = get_freqs(np.ceil(observing_freqs.max()), np.floor(observing_freqs.min()), U = 1).frequencies
+    coarse_chans = get_freqs(fmax, fmin).frequencies
 
     # stripping units and reshaping frequencies and channels
     f = np.reshape(freq_unit_strip(fine_freqs), (fine_freqs.size, 1))

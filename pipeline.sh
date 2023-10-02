@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=16
 #SBATCH --cpus-per-task=3
 #SBATCH --mem=192000M
-#SBATCH --time=4:00:00
+#SBATCH --time=2:30:00
 #SBATCH --job-name=pipeline_test
 #SBATCH --output=/home/rebeccac/scratch/pipeline/pipeline.out
 
@@ -63,7 +63,7 @@ echo "-------------- Step 1 - Tool computation --------------"
 # computing the beam transfer matrices
 # computing the response matrix R and the normalization vector norm
 # set up so that they will both be computed simultaneously
-#echo "Computing the beam transfer matrices with driftscan..."
+echo "Computing the beam transfer matrices with driftscan..."
 echo "Computing the response matrix and normalization vector..."
 echo "Computing the beam transfer matricess..."
 source /dev/null
@@ -72,6 +72,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 srun python /project/6002277/ssiegel/chord/chord_env/modules/chord/chord_pipeline/2022.11/lib/python3.10/site-packages/drift/scripts/makeproducts.py run $output_folder/beam.yaml &> $output_folder/beam.log &
 python get_response_mtx.py &
 wait
+
 
 ######################################## Step 2 - map creation  ############################################
 echo "---------------- Step 2 - Map creation ----------------"

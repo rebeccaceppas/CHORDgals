@@ -22,12 +22,11 @@ yaml_output_file.close()
 
 fstate = FreqState()
 fstate.freq = (fmax, fmin, nfreq)
+
 fine_freqs = get_fine_freqs(fstate.frequencies)
 
-## NEED TO FIGURE OUT IF I'M MEANT TO FLIP THEM OR NOT
-## I THINK THEY SHOULD BOTH BE GOING FROM HIGH TO LOW
 # getting the response matrix and normalization envelope
-R, norm = get_response_matrix(fine_freqs, fstate.frequencies, U)
+R, norm = get_response_matrix(fine_freqs, fmax, fmin, U)
 
 # saving both to disk
 np.save(output_folder+'/R.npy', R)
