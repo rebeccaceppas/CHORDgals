@@ -17,13 +17,10 @@ def get_freqs(fmax=1500, fmin=300, U=1):
     U: int
         upchannelization factor
     '''
-    
-
-    # calculations
     coarse_df = 0.586
-    df = coarse_df / U
 
-    nfreq = int(np.ceil((fmax - fmin)/df))
+    nfreq = int(np.floor((fmax - fmin)/coarse_df))
+    nfreq *= U
 
     fstate = FreqState()
     fstate.freq = (fmax, fmin, nfreq)

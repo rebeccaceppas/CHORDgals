@@ -50,7 +50,6 @@ sky_file = map_filepath+'/sky_map.h5'
 
 fine_freqs = get_fine_freqs(fstate.frequencies)
 
-print('nfreq input ', nfreq)
 
 if map == 1:
     # upchannelize a sky map
