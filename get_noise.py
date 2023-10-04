@@ -5,8 +5,10 @@ from drift.core import manager
 from draco.analysis import mapmaker, transform
 from save_galaxy_map import write_map
 from FreqState import FreqState
+import h5py
+from draco.core import containers
 
-yaml_input_file = open("inputs.yaml")
+yaml_input_file = open("../pipeline/inputs.yaml")
 input = yaml.safe_load(yaml_input_file)
 output_folder = input['process']['output_folder']
 yaml_input_file.close()
@@ -21,6 +23,9 @@ fmin = output['frequencies']['fmin']
 nfreq = output['fstate']['nfreq']
 yaml_file.close()
 
+dict_stream = {'recv_temp': tsys, 'ndays': ndays}
+dict_map = {'nside': nside}
+
 '''getting normalized noisy visibilities'''
 norm = np.load(output_folder+'/norm.npy')
 
@@ -28,6 +33,8 @@ manager = get_manager(output_folder)
 
 noisy = NormalizedNoise()
 noisy.setup(manager)
+
+noisy.read_config(dict_stream)
 
 data = get_sstream(output_folder)
 
@@ -38,14 +45,14 @@ mmodes = transform.MModeTransform()
 mmodes.setup(manager)
 
 Mmodes = mmodes.process(noisy_data)
-print(Mmodes)
 
 '''making dirty map'''
 dm = mapmaker.DirtyMapMaker()
+dm.read_config(dict_map)
 dm.setup(manager)
 m = dm.process(Mmodes)
 
-filename = output_folder+'/dirty_map_norm.h5'
+filename = 'dirty_map_norm.h5'
 map_ = m['map'][:]
 fstate = FreqState()
 fstate.freq = (fmax, fmin, nfreq)

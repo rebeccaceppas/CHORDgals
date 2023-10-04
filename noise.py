@@ -125,7 +125,6 @@ class GaussianNoise(task.SingleTask, random.RandomTask):
 
         return data
 
-
 class NormalizedNoise(task.SingleTask, random.RandomTask):
     """Add Gaussian distributed noise to a visibility dataset that is renormalized by up-channelization.
     The noise will be channel dependent given by a normalization curve.
@@ -224,6 +223,7 @@ class NormalizedNoise(task.SingleTask, random.RandomTask):
 
             # normalizing by upchannelization envelope
             noise = np.copy(noise_temp)
+            noise = noise / np.max(noise)  # care about relative amplitude change
             for i, n in enumerate(norm):
                 noise[i,:,:] /= n
             
@@ -244,7 +244,6 @@ class NormalizedNoise(task.SingleTask, random.RandomTask):
 
         return data
 
-
 def get_manager(output_folder):
 
     pm = manager.ProductManager.from_config(output_folder)
@@ -256,7 +255,6 @@ def get_telescope(manager):
     telescope = io.get_telescope(manager)
 
     return telescope
-
 
 def get_sstream(output_folder):
 

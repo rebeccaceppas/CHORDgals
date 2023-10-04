@@ -205,7 +205,7 @@ def get_resampled_profiles(V, S, z, fine_freqs):
 
     for i in range(len(V)):
         
-        resampled_profiles[i] = np.interp(fine_freqs[::-1], profile.obs_freq[::-1][i], profile.T[::-1][i])[::-1]
+        resampled_profiles[i] = np.interp(fine_freqs[::-1], profile.obs_freq[i][::-1], profile.T[i][::-1])[::-1]
 
     # outputs them from high to low freq
     return resampled_profiles
