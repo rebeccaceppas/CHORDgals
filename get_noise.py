@@ -8,7 +8,7 @@ from FreqState import FreqState
 import h5py
 from draco.core import containers
 
-yaml_input_file = open("../pipeline/inputs.yaml")
+yaml_input_file = open("inputs.yaml")
 input = yaml.safe_load(yaml_input_file)
 output_folder = input['process']['output_folder']
 yaml_input_file.close()
