@@ -321,14 +321,14 @@ def channelize_catalogue(U, fstate, nside, catalogue_filepath, R_filepath, norm_
     print()
 
     # setting profiles out of range back to 0 after numerical artifacts added by up-channelization
-    print('channelize_catalogue: Removing numerical artifacts')
+    print('channelize_catalogue: Removing numerical artifacts and flipping profiles')
     for i, p in enumerate(profiles):
         if np.all(p <=1e-10):
             heights[i] = np.zeros_like(heights[i])
 
     print('channelize_catalogue: Creating map')
     pol = 'full'
-    map_catalog(fstate, heights, nside, pol, ra, dec, filename=save_title, write=True)
+    map_catalog(fstate, np.flip(heights, axis=1), nside, pol, ra, dec, filename=save_title, write=True)
 
     return heights
 
