@@ -1,14 +1,12 @@
 import numpy as np
 import numexpr as ne 
 import matplotlib.pyplot as plt
-from unit_converter import GalaxyProfile # to convert profiles
+from unit_converter import GalaxyCatalog 
 import Generate_HI_Spectra as g
 import h5py
 from FreqState import FreqState
 from save_galaxy_map import write_map
 from scipy import interpolate
-
-'''Functions for general (up)channelization'''
 
 def window(index, M, length): # window function
     '''(array, int, int) -> (array)
@@ -115,7 +113,6 @@ def response_mtx(c, f, M, N, U):
     # returning the combined response matrix where coarse and fine channelization weights are multiplied
     return np.multiply(mtx_chan, mtx_upchan)
 
-
 def freq_unit_strip(f):
     '''strips quantities in frequency-space (MHz) to become unitless'''
     return (f - 300) * 4096 * 0.417 * 0.001
@@ -124,6 +121,11 @@ def freq_unit_add(f_bar):
     '''adds frequency units (MHz) to unitless quantities'''
     return f_bar / (4096 * 0.417 * 0.001) + 300
 
+def get_fine_freqs(observing_freqs):
+    fmax = np.max(observing_freqs)+2
+    fmin = np.min(observing_freqs)-2
+    dc = observing_freqs[1] - observing_freqs[0]  # getting a negative dc 
+    return np.arange(fmax, fmin, dc / 3) # making the frequency resolution = 1/3 dc 
 
 def get_chans(min_freq, max_freq):
     '''(int/float, int/float) -> (array)
@@ -134,13 +136,12 @@ def get_chans(min_freq, max_freq):
 
     return np.arange(min_chan, max_chan + 1)
 
-# Relevant functions start below this line!
-# --------------------------------------------------------
-
 def read_catalogue(file):
     '''Function to open the galaxy catalogue and retrieve velocity and flux readings'''
     # Read Catalog:
+    print('read_catalogue: Reading in {}'.format(file))
     Catalog = np.loadtxt(file)
+    print()
 
     # Galaxy parameters:
     MHI = Catalog[0]      # HI Mass - SolMass
@@ -159,6 +160,7 @@ def read_catalogue(file):
     c = Catalog[11]       # Controls depth of trough
 
     ## Generate all Spectra from points in catalog into one array V velocity and S flux:
+    print('read_catalogue: Generating spectra')
     sample_size = len(Catalog[0])
     Mfound = []; V = []; S = []; W = []; Wroots = []
     for j in range(sample_size):
@@ -168,10 +170,11 @@ def read_catalogue(file):
         S.append(s)
         W.append(w)
         Wroots.append(w_)
+    print()
 
-    return V, S
+    return V, S, z
 
-def get_resampled_profiles(V, S, nfreq = 10000, midfreq = 1400):
+def get_resampled_profiles(V, S, z, fine_freqs):
     '''Takes opened galaxy catalogue and returns finely re-sampled profiles in frequency space.
     Inputs:
         V, S (np.ndarray): velocity and flux obtained from read_catalogue function.
@@ -180,28 +183,27 @@ def get_resampled_profiles(V, S, nfreq = 10000, midfreq = 1400):
     Outputs: 
         freqs (np.ndarray): array of frequencies at which all profiles are sampled
         profiles (np.ndarray): the galaxy profiles from the catalogue '''
-
+    
     # instantiating array to hold profiles
-    profiles = np.zeros((len(S), nfreq))
+    print('get_resampled_profiles: Initiated array to hold resampled profiles...')
+    resampled_profiles = np.zeros((len(S), len(fine_freqs)))
+    print()
 
-    vel_new = np.linspace(-1000, 1000, nfreq) 
+    # converting the units
+    print('get_resampled_profiles: Converting units')
+    profile = GalaxyCatalog(V, S, z)
+    profile.convert_units()
+    print()
 
+    print('get_resampled_profiles: Interpolating')
     for i in range(len(V)):
 
-        # if np.max(V[i]) > 1000:
-        #     for j in np.where(V[i] > 1000)[:]:
-        #         if True in (S[i][j] > 0.1):
-        #             raise Exception('Warning: There is an unusually wide profile in this catalogue!')
+        new_prof = np.interp(fine_freqs, profile.obs_freq[i][::-1], profile.T[i][::-1]) 
+        resampled_profiles[i] = new_prof
 
-        flux = np.interp(vel_new, V[i], S[i])
-        profile = GalaxyProfile(np.array([vel_new, flux]).T, midfreq)
-        profile.convert_units()
-        if i == 0:
-            freqs = profile.obs_freq
-        profiles[i] = profile.T
-
-    return freqs, profiles
-
+    # outputs them from high to low freq
+    print()
+    return resampled_profiles
 
 def get_response_matrix(freqs, U, min_obs_freq = 1398, max_obs_freq = 1402, M = 4, N = 4096, viewmatrix = False):
     '''Gets the response matrix and the channels being observed on after upchannelization
@@ -272,7 +274,6 @@ def get_response_matrix(freqs, U, min_obs_freq = 1398, max_obs_freq = 1402, M = 
 
     return R, chans, norm_unscaled * k
 
-
 def upchannelize(profiles, U, R_filepath, norm_filepath):
     ''' Upchannelizes input profiles to get response on every channel
     Inputs:
@@ -305,15 +306,15 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     return heights
 
-def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, nfreq):
+def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fine_freqs):
     # getting velocity and flux from catalogue
     print('channelize_catalogue: Getting flux and velocitities from catalog')
-    V, S = read_catalogue(catalogue_filepath)
+    V, S, z = read_catalogue(catalogue_filepath)
     print()
 
     # resampling and converting into profiles in frequency space
     print('channelize_catalogue: Resampling profiles and converting units')
-    freqs, profiles = get_resampled_profiles(V, S, nfreq=nfreq)
+    profiles = get_resampled_profiles(V, S, z, fine_freqs)
     print()
 
     # generating heights
@@ -353,3 +354,5 @@ def channelize_map(U, map_filepath, R_filepath, norm_filepath, chans_filepath, s
         map_[:, 0, i] = heights[i]
 
     write_map(save_title, map_, fstate.frequencies, fstate.freq_width, include_pol=True)
+
+
