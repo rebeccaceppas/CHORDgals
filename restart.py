@@ -5,7 +5,7 @@ from unit_converter import GalaxyCatalog
 import Generate_HI_Spectra as g
 import h5py
 from FreqState import FreqState
-from save_galaxy_map import write_map
+from save_galaxy_map import write_map, map_catalog
 from scipy import interpolate
 
 def window(index, M, length): # window function
@@ -171,7 +171,7 @@ def read_catalogue(file):
         W.append(w)
         Wroots.append(w_)
 
-    return V, S, z
+    return V, S, z, ra, dec
 
 def get_resampled_profiles(V, S, z, fine_freqs):
     '''Takes opened galaxy catalogue and returns finely re-sampled profiles in frequency space.
@@ -201,7 +201,6 @@ def get_resampled_profiles(V, S, z, fine_freqs):
         resampled_profiles[i] = new_prof
 
     # outputs them from high to low freq
-    print()
     return resampled_profiles
 
 def get_response_matrix(freqs, U, min_obs_freq = 1398, max_obs_freq = 1402, M = 4, N = 4096, viewmatrix = False):
@@ -305,10 +304,10 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     return heights
 
-def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fine_freqs):
+def channelize_catalogue(U, fstate, nside, catalogue_filepath, R_filepath, norm_filepath, fine_freqs, save_title):
     # getting velocity and flux from catalogue
     print('channelize_catalogue: Getting flux and velocitities from catalog')
-    V, S, z = read_catalogue(catalogue_filepath)
+    V, S, z, ra, dec = read_catalogue(catalogue_filepath)
     print()
 
     # resampling and converting into profiles in frequency space
@@ -326,6 +325,10 @@ def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fine_
     for i, p in enumerate(profiles):
         if np.all(p <=1e-10):
             heights[i] = np.zeros_like(heights[i])
+
+    print('channelize_catalogue: Creating map')
+    pol = 'full'
+    map_catalog(fstate, heights, nside, pol, ra, dec, filename=save_title, write=True)
 
     return heights
 
