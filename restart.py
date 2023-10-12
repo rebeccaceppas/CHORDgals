@@ -170,7 +170,6 @@ def read_catalogue(file):
         S.append(s)
         W.append(w)
         Wroots.append(w_)
-    print()
 
     return V, S, z
 
@@ -321,6 +320,12 @@ def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fine_
     print('channelize_catalogue: Upchannelizing profiles')
     heights = upchannelize(profiles, U, R_filepath, norm_filepath)
     print()
+
+    # setting profiles out of range back to 0 after numerical artifacts added by up-channelization
+    print('channelize_catalogue: Removing numerical artifacts')
+    for i, p in enumerate(profiles):
+        if np.all(p <=1e-10):
+            heights[i] = np.zeros_like(heights[i])
 
     return heights
 
