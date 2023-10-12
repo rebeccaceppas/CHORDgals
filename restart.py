@@ -1,7 +1,6 @@
 import numpy as np
 import numexpr as ne 
 import matplotlib.pyplot as plt
-import astropy.units as u
 from unit_converter import GalaxyProfile # to convert profiles
 import Generate_HI_Spectra as g
 import h5py
@@ -86,9 +85,11 @@ def response_mtx(c, f, M, N, U):
     '''
     # creating coarse channelization matrix, size = (number of coarse chans x nfreq)
     # where each entry is (c-f) of the relevant channel and frequency
+    print('response_mtx: Creating coarse channelization matrix (c - f)')
     submtx_chan = np.tile(c, [f.shape[0], 1]).T - f[:,0]
 
     # passing each element in the matrix through the coarse channelization algorithm
+    print('response_mtx: Passing matrix through channelization algorithm')
     submtx_chan = weight_chan(submtx_chan, M, N)
 
     # reshaping the resulting matrix so that we get U identical rows per coarse channel
@@ -96,13 +97,16 @@ def response_mtx(c, f, M, N, U):
 
     # ----------
     # creating fine upchannelization matrix, size = (U x nfreq)
+    print('response_mtx: Creating fine upchannelization matrix')
     submtx_upchan = np.tile(np.arange(U), [f.shape[0], 1]).T
 
     # making it so that every entry corresponds to the expression needed in the exponential term 
     # of the upchannelization weight function
+    print('response_mtx: Populating upchannelization matrix')
     submtx_upchan = (U-1) / U - 2*submtx_upchan / U + 2*f[:,0]
 
     # passing through upchannelization algorithm
+    print('response_mtx: Passing matrix through upchannelization algorithm')
     submtx_upchan = weight_upchan(submtx_upchan, M, U)  
 
     # reshaping so that we get repeating blocks from u = 1...U for each coarse channel
@@ -216,29 +220,37 @@ def get_response_matrix(freqs, U, min_obs_freq = 1398, max_obs_freq = 1402, M = 
         norm (np.ndarray): channelization envelope to be divided out for normalization '''
 
     # setting the coarse channels
+    print('get_response_matrix: Getting coarse channels')
     coarse_chans = get_chans(min_obs_freq, max_obs_freq)
+    print()
 
     # stripping units and reshaping frequencies and channels
+    print('get_response_matrix: Reshaping frequencies and channels')
     f = np.reshape(freq_unit_strip(freqs[::-1]), (freqs.size, 1))
     c = np.reshape(coarse_chans, (1, len(coarse_chans))).astype(int)
+    print()
 
     # generating response matrix - will eventually replace this step to simply load up the needed matrix file
+    print('get_response_matrix: Generating response matrix')
     R = response_mtx(c, f, M, N, U)
+    print()
 
     # visualizing the matrix:
     if viewmatrix == True:
         plt.figure(figsize = (10, 10), dpi = 200)
-        plt.imshow(np.abs(R.real)**2, cmap = 'viridis')
+        plt.imshow(np.abs(R.real)**2, cmap = 'viridis', aspect='auto')
         plt.xlabel('Columns (f)')
         plt.ylabel('Rows (c)')
         plt.colorbar()
         plt.show()
-        plt.savefig('matrix_' + str(U) + '.png')
 
+    print('get_response_matrix: Adding units to channels')
     chans = np.arange(c.min()-0.5 + 1/(2*U), c.max() + 0.5, 1/U) 
     chans = freq_unit_add(chans)
+    print()
 
     # removing frequency ripples from coarse channelization
+    print('get_response_matrix: Getting norm to remove ripples')
     df = freqs[1] - freqs[0]
     dc = chans[1] - chans[0]
     freqs_null = np.arange(chans.min() - 2 * dc, chans.max() + 2 * dc, np.abs(df))
@@ -293,15 +305,21 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     return heights
 
-def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath):
+def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, nfreq):
     # getting velocity and flux from catalogue
+    print('channelize_catalogue: Getting flux and velocitities from catalog')
     V, S = read_catalogue(catalogue_filepath)
+    print()
 
     # resampling and converting into profiles in frequency space
-    freqs, profiles = get_resampled_profiles(V, S)
+    print('channelize_catalogue: Resampling profiles and converting units')
+    freqs, profiles = get_resampled_profiles(V, S, nfreq=nfreq)
+    print()
 
     # generating heights
-    heights = upchannelize(freqs, profiles, U, R_filepath, norm_filepath)
+    print('channelize_catalogue: Upchannelizing profiles')
+    heights = upchannelize(profiles, U, R_filepath, norm_filepath)
+    print()
 
     return heights
 
