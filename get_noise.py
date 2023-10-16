@@ -1,4 +1,4 @@
-from noise import NormalizedNoise, get_manager, get_sstream
+from noise import NormalizedNoise, GaussianNoise, get_manager, get_sstream
 import yaml
 import numpy as np
 from drift.core import manager
@@ -18,32 +18,34 @@ output = yaml.safe_load(yaml_file)
 tsys = output['telescope']['tsys']
 ndays = output['telescope']['ndays']
 nside = output['telescope']['nside']
-fmax = output['frequencies']['fmax']
-fmin = output['frequencies']['fmin']
+f_start = output['fstate']['f_start']
+f_end = output['fstate']['f_end']
 nfreq = output['fstate']['nfreq']
 yaml_file.close()
 
 dict_stream = {'recv_temp': tsys, 'ndays': ndays}
 dict_map = {'nside': nside}
 
-'''getting normalized noisy visibilities'''
+print(ndays)
+
 norm = np.load(output_folder+'/norm.npy')
-
 manager = get_manager(output_folder)
-
-noisy = NormalizedNoise()
-noisy.setup(manager)
-
-noisy.read_config(dict_stream)
-
 data = get_sstream(output_folder)
 
+fstate = FreqState()
+fstate.freq = (f_start, f_end, nfreq)
+
+#### NORMALIZED NOISE
+
+'''getting noisy visibilities'''
+noisy = NormalizedNoise()
+noisy.setup(manager)
+noisy.read_config(dict_stream)
 noisy_data = noisy.process(data, norm)
 
 '''getting M-modes'''
 mmodes = transform.MModeTransform()
 mmodes.setup(manager)
-
 Mmodes = mmodes.process(noisy_data)
 
 '''making dirty map'''
@@ -51,10 +53,30 @@ dm = mapmaker.DirtyMapMaker()
 dm.read_config(dict_map)
 dm.setup(manager)
 m = dm.process(Mmodes)
-
-filename = 'dirty_map_norm.h5'
+filename = output_folder+'/dirty_map_norm_{}.h5'.format(ndays)
 map_ = m['map'][:]
-fstate = FreqState()
-fstate.freq = (fmax, fmin, nfreq)
 
 write_map(filename, map_, fstate.frequencies, fstate.freq_width, include_pol=True)
+
+#### GAUSSIAN NOISE
+
+'''getting noisy visibilities'''
+noisy_gauss = GaussianNoise()
+noisy_gauss.setup(manager)
+noisy_gauss.read_config(dict_stream)
+noisy_data_gauss = noisy_gauss.process(data)
+
+'''getting M-modes'''
+mmodes_gauss = transform.MModeTransform()
+mmodes_gauss.setup(manager)
+Mmodes_gauss = mmodes_gauss.process(noisy_data_gauss)
+
+'''making dirty map'''
+dm_gauss = mapmaker.DirtyMapMaker()
+dm_gauss.read_config(dict_map)
+dm_gauss.setup(manager)
+m_gauss = dm_gauss.process(Mmodes_gauss)
+filename = output_folder+'/dirty_map_gauss_{}.h5'.format(ndays)
+map_gauss = m_gauss['map'][:]
+
+write_map(filename, map_gauss, fstate.frequencies, fstate.freq_width, include_pol=True)

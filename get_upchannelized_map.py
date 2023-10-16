@@ -19,50 +19,49 @@ R_filepath = output['process']['output_folder'] + '/R.npy'
 norm_filepath = output['process']['output_folder'] + '/norm.npy'
 map_filepath = output['process']['output_folder']
 catalogue_filepath = output['process']['catalog']
-fmax = output['frequencies']['fmax']
-fmin = output['frequencies']['fmin']
+f_start = output['fstate']['f_start']
+f_end = output['fstate']['f_end']
 nfreq = output['fstate']['nfreq']
 nside = output['telescope']['nside']
 catalogue_filepath = output['process']['catalog']
+fmax = output['frequencies']['fmax']
+fmin = output['frequencies']['fmin']
 yaml_file.close()
 
 fstate = FreqState()
-fstate.freq = (fmax, fmin, nfreq)
+fstate.freq = (f_start, f_end, nfreq)
 
 args = sys.argv
 map = int(args[1])
 
-f_fg = h5py.File(map_filepath+'/foregrounds.h5')
-Map_fg = np.array(f_fg['map'])  # the healpix map                                                                                            
-idx = f_fg['index_map']
-ff = np.array(idx['freq'])
-freqs = np.array([ii[0] for ii in ff])
-f_width = np.abs(freqs[0] - freqs[1])
-f_fg.close()
-
-f_s = h5py.File(map_filepath+'/synch_map.h5')
-Map_s = np.array(f_s['map'])  # the healpix map                                                                                              
-f_s.close()
-
-sky_map = Map_fg + Map_s
-
-write_map(map_filepath+'/sky_map.h5', sky_map, freqs, f_width, include_pol=True)
-
-sky_file = map_filepath+'/sky_map.h5'
-
 fine_freqs = get_fine_freqs(fstate.frequencies)
-
 
 if map == 1:
     # upchannelize a sky map
+    f_fg = h5py.File(map_filepath+'/foregrounds.h5')
+    Map_fg = np.array(f_fg['map'])  # the healpix map                                                                                            
+    idx = f_fg['index_map']
+    ff = np.array(idx['freq'])
+    freqs = np.array([ii[0] for ii in ff])
+    f_width = np.abs(freqs[0] - freqs[1])
+    f_fg.close()
+
+    f_s = h5py.File(map_filepath+'/synch_map.h5')
+    Map_s = np.array(f_s['map'])  # the healpix map                                                                                              
+    f_s.close()
+
+    sky_map = Map_fg + Map_s
+
+    write_map(map_filepath+'/sky_map.h5', sky_map, freqs, f_width, include_pol=True)
+
+    sky_file = map_filepath+'/sky_map.h5'
     save_title = map_filepath+'/Up_Sky.h5'
-    channelize_map(U, fmax, fmin, nfreq, nside, sky_file, R_filepath, norm_filepath, save_title, fine_freqs)
+    channelize_map(U, fstate, map_filepath, R_filepath, norm_filepath, fine_freqs, save_title)
 
 else:
     # upchannelize the galaxy catalog profiles
     save_title = map_filepath+'/Up_Gal.h5'
-    channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax, fmin, nfreq, nside, save_title, fine_freqs)
-
+    heights = channelize_catalogue(U, fstate, nside, catalogue_filepath, R_filepath, norm_filepath, fine_freqs, save_title)
 
 # get and save regular galaxy map for checking -- remove later if not needed
 V, S, z, ra, dec = read_catalogue(catalogue_filepath)

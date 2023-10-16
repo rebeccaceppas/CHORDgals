@@ -1,15 +1,12 @@
 import numpy as np
 import numexpr as ne 
 import matplotlib.pyplot as plt
-import astropy.units as u
-from unit_converter import GalaxyCatalog # to convert profiles
+from unit_converter import GalaxyCatalog 
 import Generate_HI_Spectra as g
 import h5py
 from FreqState import FreqState
 from save_galaxy_map import write_map, map_catalog
 from scipy import interpolate
-
-'''Functions for general (up)channelization'''
 
 def window(index, M, length): # window function
     '''(array, int, int) -> (array)
@@ -93,10 +90,10 @@ def response_mtx(c, f, M, N, U):
 
     # reshaping the resulting matrix so that we get U identical rows per coarse channel
     mtx_chan = np.repeat(submtx_chan, U, axis = 0)  
-    
+
     # ----------
     # creating fine upchannelization matrix, size = (U x nfreq)
-    submtx_upchan = np.tile(np.arange(U-1, -1, -1), [f.shape[0], 1]).T
+    submtx_upchan = np.tile(np.arange(U), [f.shape[0], 1]).T
 
     # making it so that every entry corresponds to the expression needed in the exponential term 
     # of the upchannelization weight function
@@ -107,7 +104,7 @@ def response_mtx(c, f, M, N, U):
 
     # reshaping so that we get repeating blocks from u = 1...U for each coarse channel
     mtx_upchan = np.tile(submtx_upchan, (len(c[0]), 1)) # tiling resulting matrix to correct shape
-    
+
     # returning the combined response matrix where coarse and fine channelization weights are multiplied
     return np.multiply(mtx_chan, mtx_upchan)
 
@@ -119,32 +116,20 @@ def freq_unit_add(f_bar):
     '''adds frequency units (MHz) to unitless quantities'''
     return f_bar / (4096 * 0.417 * 0.001) + 300
 
-def get_freqs(fmax=1500, fmin=300):
-    '''
-    Inputs
-    ------
-    fmax: float
-        maximum frequency to observe in MHz
-        default: 1500 MHz
-    fmin: float
-        minimum frequency to observe in MHz
-        default: 300 MHz
-    U: int
-        upchannelization factor
-    '''
+def get_fine_freqs(observing_freqs):
+    fmax = np.max(observing_freqs)+2
+    fmin = np.min(observing_freqs)-2
+    dc = observing_freqs[1] - observing_freqs[0]  # getting a negative dc 
+    return np.arange(fmax, fmin, dc / 3) # making the frequency resolution = 1/3 dc 
 
-    # calculations
-    coarse_df = 0.586
+def get_chans(min_freq, max_freq):
+    '''(int/float, int/float) -> (array)
+    Takes a minimum and maximum observing frequency and returns the appropriate corresponding 
+    coarse channels for CHORD'''
+    min_chan = np.floor(freq_unit_strip(min_freq))
+    max_chan = np.ceil(freq_unit_strip(max_freq))
 
-    nfreq = int(np.floor((fmax - fmin)/coarse_df))
-
-    fstate = FreqState()
-    fstate.freq = (fmax, fmin, nfreq)
-
-    return fstate
-
-# Relevant functions start below this line!
-# --------------------------------------------------------
+    return np.arange(min_chan, max_chan + 1)
 
 def read_catalogue(file):
     '''Function to open the galaxy catalogue and retrieve velocity and flux readings'''
@@ -180,12 +165,6 @@ def read_catalogue(file):
 
     return V, S, z, ra, dec
 
-def get_fine_freqs(observing_freqs):
-    fmax = np.max(observing_freqs)
-    fmin = np.min(observing_freqs)
-    dc = observing_freqs[1] - observing_freqs[0]  # getting a negative dc 
-    return np.arange(fmax, fmin, dc / 3) # making the frequency resolution = 1/3 dc 
-
 def get_resampled_profiles(V, S, z, fine_freqs):
     '''Takes opened galaxy catalogue and returns finely re-sampled profiles in frequency space.
     Inputs:
@@ -204,18 +183,18 @@ def get_resampled_profiles(V, S, z, fine_freqs):
     profile.convert_units()
 
     for i in range(len(V)):
-        
-        resampled_profiles[i] = np.interp(fine_freqs[::-1], profile.obs_freq[i][::-1], profile.T[i][::-1])[::-1]
+
+        new_prof = np.interp(fine_freqs, profile.obs_freq[i][::-1], profile.T[i][::-1]) 
+        resampled_profiles[i] = new_prof
 
     # outputs them from high to low freq
     return resampled_profiles
 
-def get_response_matrix(fine_freqs, fmax, fmin, U, M = 4, N = 4096, viewmatrix = False):
+def get_response_matrix(freqs, U, min_obs_freq = 1398, max_obs_freq = 1402, M = 4, N = 4096, viewmatrix = False):
     '''Gets the response matrix and the channels being observed on after upchannelization
     
     Inputs:
-        fine_freqs (np.ndarray): frequencies outputted by get_fine_freqs function
-        observing_freqs (np.ndarray): location of fine channels in frequency space
+        freqs (np.ndarray): frequencies outputted by get_resampled_profiles function
         U (int): upchannelization factor, # of fine channels per coarse channel
         min_obs_freq, max_obs_freq (int): sets the observing range, determines coarse channels used
         M (int): # of taps for PFB
@@ -224,14 +203,15 @@ def get_response_matrix(fine_freqs, fmax, fmin, U, M = 4, N = 4096, viewmatrix =
         
     Outputs:
         R (np.ndarray): response matrix, to be multiplied against profile for upchannelizing
+        chans (np.ndarray): fine channel locations
         norm (np.ndarray): channelization envelope to be divided out for normalization '''
-    
+
     # setting the coarse channels
-    coarse_chans = get_freqs(fmax, fmin).frequencies
+    coarse_chans = get_chans(min_obs_freq, max_obs_freq)
 
     # stripping units and reshaping frequencies and channels
-    f = np.reshape(freq_unit_strip(fine_freqs), (fine_freqs.size, 1))
-    c = np.reshape(freq_unit_strip(coarse_chans), (1, len(coarse_chans))).astype(int)
+    f = np.reshape(freq_unit_strip(freqs[::-1]), (freqs.size, 1))
+    c = np.reshape(coarse_chans, (1, len(coarse_chans))).astype(int)
 
     # generating response matrix - will eventually replace this step to simply load up the needed matrix file
     R = response_mtx(c, f, M, N, U)
@@ -239,17 +219,19 @@ def get_response_matrix(fine_freqs, fmax, fmin, U, M = 4, N = 4096, viewmatrix =
     # visualizing the matrix:
     if viewmatrix == True:
         plt.figure(figsize = (10, 10), dpi = 200)
-        plt.imshow(np.abs(R.real)**2, cmap = 'viridis')
+        plt.imshow(np.abs(R.real)**2, cmap = 'viridis', aspect='auto')
         plt.xlabel('Columns (f)')
         plt.ylabel('Rows (c)')
         plt.colorbar()
         plt.show()
-        plt.savefig('matrix_' + str(U) + '.png')
+
+    chans = np.arange(c.min()-0.5 + 1/(2*U), c.max() + 0.5, 1/U) 
+    chans = freq_unit_add(chans)
 
     # removing frequency ripples from coarse channelization
-    df = fine_freqs[1] - fine_freqs[0]
-    dc = np.abs(coarse_chans[1] - coarse_chans[0])
-    freqs_null = np.arange(coarse_chans.max() + 2 * dc, coarse_chans.min() - 2 * dc, df)
+    df = freqs[1] - freqs[0]
+    dc = chans[1] - chans[0]
+    freqs_null = np.arange(chans.min() - 2 * dc, chans.max() + 2 * dc, np.abs(df))
     f_null = np.reshape(freq_unit_strip(freqs_null), (freqs_null.size, 1))
     null = freqs_null * 0 + 1
 
@@ -266,7 +248,7 @@ def get_response_matrix(fine_freqs, fmax, fmin, U, M = 4, N = 4096, viewmatrix =
     elif U == 32: k = 3.701749876806638e-12
     elif U == 64: k = 1.847847543734494e-12
 
-    return R, norm_unscaled * k
+    return R, chans, norm_unscaled * k
 
 def upchannelize(profiles, U, R_filepath, norm_filepath):
     ''' Upchannelizes input profiles to get response on every channel
@@ -285,7 +267,7 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     # getting response for each profile
     for i in range(len(profiles)):
-        response = np.matmul(np.abs(R)**2, profiles[i])
+        response = np.matmul(np.abs(R)**2, profiles[i][::-1])
 
         if U == 1: k = 1.216103148777748e-10
         elif U == 2: k = 7.841991167761238e-11
@@ -300,24 +282,27 @@ def upchannelize(profiles, U, R_filepath, norm_filepath):
 
     return heights
 
-def channelize_catalogue(U, catalogue_filepath, R_filepath, norm_filepath, fmax, fmin, nfreq, nside, save_title, fine_freqs):
+def channelize_catalogue(U, fstate, nside, catalogue_filepath, R_filepath, norm_filepath, fine_freqs, save_title):
     # getting velocity and flux from catalogue
     V, S, z, ra, dec = read_catalogue(catalogue_filepath)
 
-    fstate = FreqState()
-    fstate.freq = (fmax, fmin, nfreq)
-
     # resampling and converting into profiles in frequency space
-    profiles = get_resampled_profiles(V, S, z, fine_freqs) # rewrite to get only profiles
+    profiles = get_resampled_profiles(V, S, z, fine_freqs)
 
     # generating heights
     heights = upchannelize(profiles, U, R_filepath, norm_filepath)
 
-    pol = "full"
+    # setting profiles out of range back to 0 after numerical artifacts added by up-channelization
+    for i, p in enumerate(profiles):
+        if np.all(p <=1e-10):
+            heights[i] = np.zeros_like(heights[i])
 
-    map_catalog(fstate, heights, nside, pol, ra, dec, filename = save_title, write = True)
+    pol = 'full'
+    map_catalog(fstate, np.flip(heights, axis=1), nside, pol, ra, dec, filename=save_title, write=True)
 
-def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_filepath, save_title, fine_freqs):
+    return heights
+
+def channelize_map(U, fstate, map_filepath, R_filepath, norm_filepath, fine_freqs, save_title):
     ''' Opening map '''
     f = h5py.File(map_filepath)
     Map = np.array(f['map'])  # the healpix map
@@ -327,29 +312,21 @@ def channelize_map(U, fmax, fmin, nfreq, nside, map_filepath, R_filepath, norm_f
     f.close()
 
     ''' re-sampling each pixel '''
-    #freq = np.linspace(freqs.min(), freqs.max(), 1000) # new frequencies
     pixels = []
-    npix = 12*nside**2
+    npix = Map.shape[2]
     for i in range(npix):
         func = interpolate.interp1d(freqs, Map[:, 0, i], fill_value='extrapolate')
-        pixels.append(func(fine_freqs))
-    
+        pixels.append(fine_freqs)
+
     heights = upchannelize(pixels, U, R_filepath, norm_filepath)
 
-    fstate = FreqState()
-    fstate.freq = (fmax, fmin, nfreq)  # (start, end (not inclusive), number of channels)
-
+    nfreq = fstate.frequencies.size
     npol = 4
-
     map_ = np.zeros((nfreq, npol, npix), dtype=np.float64)
 
     for i in range(len(heights)):
         map_[:, 0, i] = heights[i]
 
     write_map(save_title, map_, fstate.frequencies, fstate.freq_width, include_pol=True)
-
-
-
-        
 
 

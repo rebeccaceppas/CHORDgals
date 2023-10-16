@@ -1,5 +1,5 @@
 cluster:
-  directory: /home/rebeccac/scratch/pipeline/info
+  directory: /home/rebeccac/scratch/pipeline/output/simulate_info
   name: simulate_obs
   nodes: 16
   time: 45
@@ -32,41 +32,30 @@ pipeline:
   - type: draco.core.io.LoadProductManager
     out: manager
     params:
-      product_directory: /home/rebeccac/scratch/pipeline
+      product_directory: /home/rebeccac/scratch/pipeline/output
   - type: draco.core.io.LoadMaps
     out: map
     params:
       maps:
       - tag: HIgalaxies
         files:
-        - /home/rebeccac/scratch/pipeline/Up_Gal.h5
-        - /home/rebeccac/scratch/pipeline/Up_Sky.h5
+        - /home/rebeccac/scratch/pipeline/output/Up_Gal.h5
   - type: draco.synthesis.stream.SimulateSidereal
     requires: manager
     in: map
     out: sstack
     params:
       save: true
-      output_name: /home/rebeccac/scratch/pipeline/sstream.h5
-  - type: draco.synthesis.noise.GaussianNoise
-    requires: manager
-    in: sstack
-    out: sstream_wnoise
-    params:
-      ndays: 13
-      set_weights: true
-      add_noise: true
-      save: true
-      output_name: /home/rebeccac/scratch/pipeline/sstream_gaussian_noise.h5
+      output_name: /home/rebeccac/scratch/pipeline/output/sstream.h5
   - type: draco.analysis.transform.MModeTransform
     requires: manager
-    in: sstream_wnoise
+    in: sstack
     out: mmodes
   - type: draco.analysis.mapmaker.DirtyMapMaker
     requires: manager
     in: mmodes
     out: map_dirty
     params:
-      nside: 512
+      nside: 128
       save: true
-      output_name: /home/rebeccac/scratch/response2/outputs/dirty_map1127424.h5
+      output_name: /home/rebeccac/scratch/pipeline/output/dirty_map.h5

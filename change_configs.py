@@ -13,20 +13,20 @@ yaml_input_file.close()
 
 yaml_output_file = open(output_folder+"/outputs.yaml")
 yaml_output = yaml.safe_load(yaml_output_file)
-nfreq = yaml_output['fstate']['nfreq']
 tsys = yaml_output['telescope']['tsys']
 elevation = yaml_output['telescope']['elevation']
 U = yaml_output['frequencies']['U']
-fmax = yaml_output['frequencies']['fmax']
-fmin = yaml_output['frequencies']['fmin']
+f_start = yaml_output['fstate']['f_start']
+f_end = yaml_output['fstate']['f_end']
+nfreq = yaml_output['fstate']['nfreq']
 nside = yaml_output['telescope']['nside']
 yaml_output_file.close()
 
 # beam.yaml
 with open("beam.yaml") as istream:
     ymldoc = yaml.safe_load(istream)
-    ymldoc['telescope']['freq_start'] = fmax
-    ymldoc['telescope']['freq_end'] = fmin
+    ymldoc['telescope']['freq_start'] = f_start
+    ymldoc['telescope']['freq_end'] = f_end
     ymldoc['telescope']['num_freq'] = nfreq
     ymldoc['telescope']['elevation_start'] = elevation
     ymldoc['telescope']['elevation_end'] = elevation
@@ -47,15 +47,12 @@ ostream.close()
 # simulate.yaml
 with open("simulate.yaml") as istream:
     ymldoc = yaml.safe_load(istream)
-    ymldoc['pipeline']['tasks'][4]['params']['ndays'] = float(ndays)
     ymldoc['cluster']['directory'] = output_folder+'/simulate_info'
     ymldoc['pipeline']['tasks'][1]['params']['product_directory'] = output_folder
     ymldoc['pipeline']['tasks'][2]['params']['maps'][0]['files'][0] = output_folder+'/Up_Gal.h5'
-    ymldoc['pipeline']['tasks'][2]['params']['maps'][0]['files'][1] = output_folder+'/Up_Sky.h5'
     ymldoc['pipeline']['tasks'][3]['params']['output_name'] = output_folder+'/sstream.h5'
-    ymldoc['pipeline']['tasks'][4]['params']['output_name'] = output_folder+'/sstream_gaussian_noise.h5'
-    ymldoc['pipeline']['tasks'][6]['params']['nside'] = nside
-    ymldoc['pipeline']['tasks'][6]['params']['output_name'] = output_folder+'/dirty_map_gaussian.h5'
+    ymldoc['pipeline']['tasks'][5]['params']['nside'] = nside
+    ymldoc['pipeline']['tasks'][5]['params']['output_name'] = output_folder+'/dirty_map.h5'
 istream.close()
 
     
