@@ -67,9 +67,9 @@ else:
 V, S, z, ra, dec = read_catalogue(catalogue_filepath)
 
 all_gals = GalaxyCatalog(V, S, z)
-all_gals.convert_units()
+
 gal_freqs = all_gals.obs_freq
-gal_temps = all_gals.T
+gal_temps = all_gals.T_sr
 
 nfreqmaps = int(fstate.frequencies.size / U)
 
