@@ -180,11 +180,10 @@ def get_resampled_profiles(V, S, z, fine_freqs):
 
     # converting the units
     profile = GalaxyCatalog(V, S, z)
-    profile.convert_units()
 
     for i in range(len(V)):
 
-        new_prof = np.interp(fine_freqs, profile.obs_freq[i][::-1], profile.T[i][::-1]) 
+        new_prof = np.interp(fine_freqs, profile.obs_freq[i][::-1], profile.T_sr[i][::-1]) 
         resampled_profiles[i] = new_prof
 
     # outputs them from high to low freq

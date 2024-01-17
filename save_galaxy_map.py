@@ -125,7 +125,6 @@ def make_map(fstate, temp, nside, pol, ra, dec, write=False, filename=None, new=
 
     return map_
 
-
 def map_catalog(fstate, temp, nside, pol, ras, decs, filename=None, write=True):
 
     """
@@ -150,6 +149,7 @@ def map_catalog(fstate, temp, nside, pol, ras, decs, filename=None, write=True):
     nfreq = len(fstate.frequencies)
     npol = 4 if pol =='full' else 1
     ngal = len(ras)
+    pixel_area =  hp.nside2pixarea(nside)
 
     map_ = np.zeros((nfreq, npol, 12* nside**2), dtype=np.float64)
 
@@ -158,7 +158,7 @@ def map_catalog(fstate, temp, nside, pol, ras, decs, filename=None, write=True):
         dec = decs[i]
         T = temp[i]
         for j in range(nfreq):
-            map_[j, 0, hp.ang2pix(nside, ra, dec, lonlat=True)] += T[j]
+            map_[j, 0, hp.ang2pix(nside, ra, dec, lonlat=True)] += T[j]/pixel_area
 
     if write:
         write_map(filename, map_, fstate.frequencies, fstate.freq_width, include_pol=True)

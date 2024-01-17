@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+from astropy import constants, units
 
 
 class GalaxyProfile(object):
@@ -68,8 +68,8 @@ class GalaxyProfile(object):
 
         self.convert_vel_freq()
 
-        self.dv = np.abs(self.velocity[11] - self.velocity[10])       # sampling in velocity space - noticed varied along the x-axis - why is that?
-        self.dfreq = np.abs(self.obs_freq[11] - self.obs_freq[10])    # frequency resolution in MHz
+        self.dv = np.abs(self.velocity[1] - self.velocity[0])       # sampling in velocity space - noticed varied along the x-axis - why is that?
+        self.dfreq = np.abs(self.obs_freq[1] - self.obs_freq[0])    # frequency resolution in MHz
 
         
     def convert_units(self):
@@ -110,13 +110,17 @@ class GalaxyCatalog(object):
         self.z = redshifts                               # array of redshifts of all HI galaxies in catalog
         self.rest_freq = 1420                            # rest frequency of emission (MHz)
         self.mid_freq = self.rest_freq / (1 + self.z)    # frequency at center of profile (MHz)
+        
+        # setting up converted units
+        self.convert_vel_freq()
+        self.convert_mJy_to_K_sr()
+        self.get_sampling()
+
 
     def convert_vel_freq(self):
 
         '''Converts velocity axis (km/s) into frequency axis (MHz) centred at mid_freq'''
         
-        from astropy import constants, units
-
         c = (constants.c.to(units.km/units.s)).value
 
         freqs = np.ones_like(self.v)
@@ -129,20 +133,43 @@ class GalaxyCatalog(object):
 
         self.obs_freq = freqs
 
-    def convert_flux_temp(self):
+    #def convert_flux_temp(self):
 
-        '''Converts spectral flux density axis (mJy) into temperature axis (K)'''
+        #'''Converts spectral flux density axis (mJy) into temperature axis (K)'''
 
-        from astropy import constants, units
 
-        self.convert_vel_freq()
+        #c = constants.c
+        #f = (self.obs_freq*units.MHz).to(1/units.s)
+        #self.wavelength = (c/f).to(units.m)
+        #self.resolution = (self.wavelength) / (87.8872*units.m)   # approximate resolution of 6m dish -- update for more accurate beam?
         
-        c = constants.c
-        f = (self.obs_freq*units.MHz).to(1/units.s)
-        self.wavelength = (c/f).to(units.m)
-        self.resolution = (self.wavelength) / (87.8872*units.m)   # approximate resolution of 6m dish -- update for more accurate beam?
-        
-        self.T = (self.s*units.mJy * self.wavelength**2 / (2*constants.k_B*self.resolution**2)).to(units.K)
+        #self.T = (self.s*units.mJy * self.wavelength**2 / (2*constants.k_B*self.resolution**2)).to(units.K)
+
+    def convert_mJy_to_K_sr(self):
+        """
+        Calculate multiplicative factors to convert [mJy] to [K sr].
+
+        Parameters
+        ----------
+        freqs: 'astropy.Quantity' or array_like of float
+            Frequencies
+        s: 'astropy.Quantity' or array_like of float with same dimentions of freqs
+            spectral flux density, assumed to be in mJy if not a Quantity.
+
+        Returns
+        -------
+        conv_factor: 'astropy.Quantity'
+            Conversion factor(s) to go from [Jy] to [K sr]. Shape equal to shape of freqs.
+        """
+        freqs = self.obs_freq*units.MHz
+        freqs = np.atleast_1d(freqs)
+
+        s = self.s*units.mJy
+
+        equiv = units.brightness_temperature(freqs, beam_area=1*units.sr)
+        K_sr = (s).to(units.K, equivalencies=equiv) * units.sr
+
+        self.T_sr = K_sr
 
     def get_sampling(self):
         
@@ -150,15 +177,15 @@ class GalaxyCatalog(object):
 
         self.convert_vel_freq()
 
-        self.dv = np.abs(self.v[11] - self.v[10])       # sampling in velocity space - noticed varied along the x-axis - why is that?
-        self.dfreq = np.abs(self.obs_freq[11] - self.obs_freq[10])    # frequency resolution in MHz
+        self.dv = np.abs(self.v[1] - self.v[0])       # sampling in velocity space - noticed varied along the x-axis - why is that?
+        self.dfreq = np.abs(self.obs_freq[1] - self.obs_freq[0])    # frequency resolution in MHz
 
         
-    def convert_units(self):
+    #def convert_units(self):
 
-        '''Converts both axis of interest into K/MHz units'''
+        #'''Converts both axis of interest into K/MHz units'''
         
-        self.convert_vel_freq()
-        self.convert_flux_temp()
-        self.get_sampling()
+        #self.convert_vel_freq()
+        #self.convert_flux_temp()
+        #self.get_sampling()
         
