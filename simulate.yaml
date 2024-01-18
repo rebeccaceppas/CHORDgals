@@ -51,9 +51,14 @@ pipeline:
     requires: manager
     in: sstack
     out: mmodes
+  - type: draco.analysis.flagging.MaskMModeData
+    in: mmodes
+    out: masked_mmodes
+    params:
+      auto_correlations: False
   - type: draco.analysis.mapmaker.DirtyMapMaker
     requires: manager
-    in: mmodes
+    in: masked_mmodes
     out: map_dirty
     params:
       nside: 128
