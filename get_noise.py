@@ -23,7 +23,14 @@ f_end = output['fstate']['f_end']
 nfreq = output['fstate']['nfreq']
 yaml_file.close()
 
-dict_stream = {'recv_temp': tsys, 'ndays': ndays}
+set_weights = True
+add_noise = True
+
+dict_stream = {'recv_temp': tsys, 
+               'ndays': ndays, 
+               'set_weights': set_weights,
+               'add_noise': add_noise}
+
 dict_map = {'nside': nside}
 
 print(ndays)
