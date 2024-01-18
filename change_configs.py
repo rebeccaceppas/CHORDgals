@@ -1,4 +1,3 @@
-## FINISHED ##
 import yaml
 
 yaml_input_file = open("inputs.yaml")
@@ -51,8 +50,8 @@ with open("simulate.yaml") as istream:
     ymldoc['pipeline']['tasks'][1]['params']['product_directory'] = output_folder
     ymldoc['pipeline']['tasks'][2]['params']['maps'][0]['files'][0] = output_folder+'/Up_Gal.h5'
     ymldoc['pipeline']['tasks'][3]['params']['output_name'] = output_folder+'/sstream.h5'
-    ymldoc['pipeline']['tasks'][5]['params']['nside'] = nside
-    ymldoc['pipeline']['tasks'][5]['params']['output_name'] = output_folder+'/dirty_map.h5'
+    ymldoc['pipeline']['tasks'][6]['params']['nside'] = nside
+    ymldoc['pipeline']['tasks'][6]['params']['output_name'] = output_folder+'/dirty_map.h5'
 istream.close()
 
     
