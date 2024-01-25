@@ -123,6 +123,9 @@ class GaussianNoise(task.SingleTask, random.RandomTask):
             for fi in range(len(visdata)):
                 data.weight[fi] = 1.0 / std[:, np.newaxis] ** 2
 
+        # Normalizing weights = normalizing N_inv for mapmaking
+        data.weight[:] = data.weight[:]/np.max(data.weight[:])[0]
+
         return data
 
 class NormalizedNoise(task.SingleTask, random.RandomTask):
@@ -241,6 +244,9 @@ class NormalizedNoise(task.SingleTask, random.RandomTask):
         if self.set_weights:
             for fi in range(len(visdata)):
                 data.weight[fi] = 1.0 / std[:, np.newaxis] ** 2
+
+        # Normalizing weights = normalizing N_inv for mapmaking
+        data.weight[:] = data.weight[:]/np.max(data.weight[:])[0]
 
         return data
 
