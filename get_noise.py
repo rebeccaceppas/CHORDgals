@@ -2,11 +2,9 @@ from noise import NormalizedNoise, GaussianNoise, get_manager, get_sstream
 import yaml
 import numpy as np
 from drift.core import manager
-from draco.analysis import mapmaker, transform
+from draco.analysis import mapmaker, transform, flagging
 from save_galaxy_map import write_map
 from FreqState import FreqState
-import h5py
-from draco.core import containers
 
 yaml_input_file = open("inputs.yaml")
 input = yaml.safe_load(yaml_input_file)
@@ -27,11 +25,11 @@ set_weights = True
 add_noise = True
 
 dict_stream = {'recv_temp': tsys, 
-               'ndays': ndays, 
-               'set_weights': set_weights,
-               'add_noise': add_noise}
+               'ndays': ndays}
 
 dict_map = {'nside': nside}
+
+dict_mask = {'auto_correlations': False}
 
 print(ndays)
 
@@ -55,11 +53,16 @@ mmodes = transform.MModeTransform()
 mmodes.setup(manager)
 Mmodes = mmodes.process(noisy_data)
 
+'''masking auto correlations'''
+mmodes_masked = flagging.MaskMModeData()
+mmodes_masked.read_config(dict_mask)
+Mmodes_masked = mmodes_masked.process(Mmodes)
+
 '''making dirty map'''
 dm = mapmaker.DirtyMapMaker()
 dm.read_config(dict_map)
 dm.setup(manager)
-m = dm.process(Mmodes)
+m = dm.process(Mmodes_masked)
 filename = output_folder+'/dirty_map_norm_{}.h5'.format(ndays)
 map_ = m['map'][:]
 
@@ -78,11 +81,16 @@ mmodes_gauss = transform.MModeTransform()
 mmodes_gauss.setup(manager)
 Mmodes_gauss = mmodes_gauss.process(noisy_data_gauss)
 
+'''masking auto correlations'''
+mmodes_gauss_masked = flagging.MaskMModeData()
+mmodes_gauss.read_config(dict_mask)
+Mmodes_gauss_masked = mmodes_gauss_masked.process(Mmodes_gauss)
+
 '''making dirty map'''
 dm_gauss = mapmaker.DirtyMapMaker()
 dm_gauss.read_config(dict_map)
 dm_gauss.setup(manager)
-m_gauss = dm_gauss.process(Mmodes_gauss)
+m_gauss = dm_gauss.process(Mmodes_gauss_masked)
 filename = output_folder+'/dirty_map_gauss_{}.h5'.format(ndays)
 map_gauss = m_gauss['map'][:]
 
