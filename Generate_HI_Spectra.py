@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.constants as c
 import numpy as np
+from numpy import diff
 from random import choices
 from scipy import special
-from numpy import diff
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import fftconvolve
 
@@ -64,19 +64,15 @@ def initial_guess(MHI, W50, D):
 def normalDist(x, sigma, x0=0):
     return (1/(sigma*2*np.pi))*np.exp(-(x-x0)**2 / (2*sigma**2))
 
-def Generate_Spectra(MHI, VHI, i, D, a=None, b1=None, b2=None, c=None, w=1, n=2, xe=0, xp=0):
+def Generate_Spectra(MHI, VHI, i, D, a=None, b1=None, b2=None, c=None, w=1, n=2, xe=0, xp=0, threshold=0.01, incr=0.2):
     ''' Main function which generates an HI Spectrum. 
     The shape of the busy function (specified by a, b1, b2, c) is randomly generated (unless otherwise specified). 
     The area under the profile is set by MHI. 
     The FWHM width (W50) is set by VHI and inclination using W50 = VHI*2sin(i). 
     The profile is centered around 0 so xe=0 and xp=0. We use a second order n=2 general busy function'''
 
-    W = VHI*2*np.sin(i) # W_50              
+    W = VHI*2*np.sin(i) # W_50       
     e = np.linspace(-10, 10, 10000)  # unitless axes used in generalized busy function definition
-
-    # Made faster by including initial guess for 'a' based on rough 'regular' integral -> S_peak * W50
-    a_init = initial_guess(MHI, W, D)
-    #print(a_init)
 
     #try_a = np.linspace(a_init-20, a_init+20, 1000)  # range of peak flux values to try around +/- 20 mJy of initial guess 
     if c is None: 
@@ -85,27 +81,10 @@ def Generate_Spectra(MHI, VHI, i, D, a=None, b1=None, b2=None, c=None, w=1, n=2,
         b1 = np.random.choice(np.linspace(1, 3, 1000), 1) # b1 controls the height of one peak in double profile, choose randomly
     if b2 is None:
         b2 = np.random.choice(np.linspace(1, 3, 1000), 1) # b2 controles the height of second peak in double profile, choose randomly
-    
-    # Find which peak value gives the correct integrated mass MHI:
-    if a is None:
-        try_M = 0
-        a = a_init-20
-        while try_M < MHI:
-            B = Busy_general(x=e, a=1, b1=b1, b2=b2, xe=xe, xp=xp, c=c, w=w, n=n) 
-            V, S, W_ = assign_units(e, B, W, peak_S=a)
-            #print(S)
-            try_M = get_MHI(V, S, D) # Check if you can just scale integral rather than re-integrating, it will re-introduce
-            a = a + 0.5 # change increment to change accuracy vs speed
-        # The try_M approximates M_HI to 2-3 significant figures -> improve this later
-
-    # specificy a if known, and do not want to rerun HI spectra generation
-    else:
-        B = Busy_general(x=e, a=1, b1=b1, b2=b2, xe=xe, xp=xp, c=c, w=w, n=n)
-        V, S, W_ = assign_units(e, B, W, peak_S=a)
-        try_M = get_MHI(V, S, D)
-        # print(S)
-        # print(a)
-        # print(try_a)
+   
+    # Convolve with Gaussian for thermal broadening
+    B = Busy_general(x=e, a=1, b1=b1, b2=b2, xe=xe, xp=xp, c=c, w=w, n=n) 
+    V, S, W_ = assign_units(e, B, W, peak_S=1)
 
     # Add thermal broadening to Busy Function:
     FWHM = 10
@@ -113,9 +92,41 @@ def Generate_Spectra(MHI, VHI, i, D, a=None, b1=None, b2=None, c=None, w=1, n=2,
     G = normalDist(V, sigma)
     unitG = G / np.trapz(G, dx=diff(V))
     delta = (np.max(V) - np.min(V)) / V.shape
+
     S_broad = fftconvolve(S, unitG, mode='same') * delta 
-    
-    return try_M, V, S_broad, W, W_, a, b1, b2, c
+    r = find_FWHM(V, S_broad) 
+    W_broad = r[-1] - r[0]
+    #print("W_broad is ", W_broad)
+
+    # Made faster by including initial guess for 'a' based on rough 'regular' integral -> S_peak * W50
+    a_init = initial_guess(MHI, W_broad, D)
+    #print(a_init)
+
+    # Find which peak value gives the correct integrated mass MHI:
+    if a is None:
+        try_M = 1
+        a = a_init
+        error = np.abs(np.log10(try_M) - np.log10(MHI))
+        while error > threshold:
+            V, S_broad, W_ = assign_units(e, B, W_broad, peak_S=a)
+            try_M = get_MHI(V, S_broad, D) # Check if you can just scale integral rather than re-integrating, it will re-introduce
+            error = np.abs(np.log10(try_M) - np.log10(MHI))
+            if try_M < MHI:
+                a = a + (a/100) # change increment to change accuracy vs speed
+            else:
+                a = a - (a/100)
+        # The try_M approximates M_HI to 2-3 significant figures -> improve this later
+
+    # specificy a if known, and do not want to rerun HI spectra generation
+    else:
+        B = Busy_general(x=e, a=1, b1=b1, b2=b2, xe=xe, xp=xp, c=c, w=w, n=n)
+        V, S_broad, W_ = assign_units(e, B, W_broad, peak_S=a)
+        try_M = get_MHI(V, S_broad, D)
+        # print(S)
+        # print(a)
+        # print(try_a)
+
+    return try_M, V, S_broad, S, W, W_, a, b1, b2, c
 
 #######################################################
 

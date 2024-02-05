@@ -156,10 +156,16 @@ def read_catalogue(file):
     sample_size = len(Catalog[0])
     Mfound = []; V = []; S = []; W = []; Wroots = []
     for j in range(sample_size):
-        try_M, v, s, w, w_, _, _, _, _ = g.Generate_Spectra(MHI[j], VHI[j], i[j], D[j], a=a[j], b1=b1[j], b2=b2[j], c=c[j])
+        try_M, v, s_broad, s, w, w_, _, _, _, _ = g.Generate_Spectra(MHI[j], 
+                                                            VHI[j], 
+                                                            i[j], 
+                                                            D[j], 
+                                                            a=None, b1=b1[j], b2=b2[j], c=c[j], 
+                                                            w=1, n=2, xe=0, xp=0, 
+                                                            threshold=0.01, incr=0.2)
         Mfound.append(try_M)
         V.append(v)
-        S.append(s)
+        S.append(s_broad)
         W.append(w)
         Wroots.append(w_)
 
