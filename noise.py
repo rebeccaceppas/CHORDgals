@@ -195,6 +195,11 @@ class NormalizedNoise(task.SingleTask, random.RandomTask):
 
         visdata = data.vis[:]
 
+        # Adding calibration errors
+        G = calibration_errors(visdata.shape, filename = 'generic file name - change once imported to pipeline')
+        visdata = np.multiply(G, visdata)
+        data.vis[:] = visdata
+
         # Get the time interval
         if isinstance(data, containers.SiderealStream):
             dt = 240 * (data.ra[1] - data.ra[0]) * STELLAR_S
