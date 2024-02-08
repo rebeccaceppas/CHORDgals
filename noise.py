@@ -6,6 +6,7 @@ from caput.time import STELLAR_S
 from draco.util import random
 from drift.core import manager
 import h5py
+from error_sampling import get_calibration_errors
 
 _default_bitgen = np.random.SFC64(seed=247479859775347473167578167923530262728)
 _rng = np.random.Generator(_default_bitgen)
@@ -71,6 +72,11 @@ class GaussianNoise(task.SingleTask, random.RandomTask):
         data.redistribute("freq")
 
         visdata = data.vis[:]
+
+        # Adding calibration errors
+        G = calibration_errors(visdata.shape, filename = 'generic file name - change once imported to pipeline')
+        visdata = np.multiply(G, visdata)
+        data.vis[:] = visdata
 
         # Get the time interval
         if isinstance(data, containers.SiderealStream):
@@ -249,6 +255,13 @@ class NormalizedNoise(task.SingleTask, random.RandomTask):
         data.weight[:] = data.weight[:]/np.max(data.weight[:])[0]
 
         return data
+
+def calibration_errors(visdata, filename='calibrations.npy'):
+     
+    phase_draw, amp_draw = get_calibration_errors(visdata.shape, filename = filename)
+    G = (1+amp_draw/100)*np.exp(1j*phase_draw)
+
+    return G
 
 def get_manager(output_folder):
 
