@@ -74,7 +74,7 @@ class GaussianNoise(task.SingleTask, random.RandomTask):
         visdata = data.vis[:]
 
         # Adding calibration errors
-        G = calibration_errors(visdata.shape, filename = 'generic file name - change once imported to pipeline')
+        G = get_calibration_errors(visdata.shape, filename = 'generic file name - change once imported to pipeline')
         visdata = np.multiply(G, visdata)
         data.vis[:] = visdata
 
@@ -196,7 +196,7 @@ class NormalizedNoise(task.SingleTask, random.RandomTask):
         visdata = data.vis[:]
 
         # Adding calibration errors
-        G = calibration_errors(visdata.shape, filename = 'generic file name - change once imported to pipeline')
+        G = get_calibration_errors(visdata.shape, filename = 'generic file name - change once imported to pipeline')
         visdata = np.multiply(G, visdata)
         data.vis[:] = visdata
 
@@ -261,13 +261,6 @@ class NormalizedNoise(task.SingleTask, random.RandomTask):
 
         return data
 
-def calibration_errors(visdata, filename='calibrations.npy'):
-     
-    phase_draw, amp_draw = get_calibration_errors(visdata.shape, filename = filename)
-    G = (1+amp_draw/100)*np.exp(1j*phase_draw)
-
-    return G
-
 def get_manager(output_folder):
 
     pm = manager.ProductManager.from_config(output_folder)
@@ -280,12 +273,12 @@ def get_telescope(manager):
 
     return telescope
 
-def get_sstream(output_folder):
+def get_sstream(manager_path, sstream_path):
 
-    pm = get_manager(output_folder)
+    pm = get_manager(manager_path)
     tel = get_telescope(pm)
 
-    data = h5py.File(output_folder+'/sstream.h5')
+    data = h5py.File(sstream_path+'/sstream.h5')
 
     freqs = data['index_map']['freq'][:]
     freqmap = np.array([ii[0] for ii in freqs])

@@ -34,9 +34,18 @@ def draw_random_errors(phase_bins, phase_heights, amp_bins, amp_heights, output_
 
 
 # wrapper function for once we have the file 
-def get_calibration_errors(output_shape, filename = 'generic file name - change once imported to pipeline'):
+def get_calibration_errors(path_to_files, output_shape):
+
+    amplitude_file = path_to_files + 'visibility_amplitude_errors.npy'
+    phase_file = path_to_files + 'visibility_phase_errors.npy'
+
+    amp = np.load(amplitude_file)
+    phase = np.load(phase_file)
+    percentages, amp_errors = amp[:,0], amp[:,1]
+    radians, phase_errors = phase[:,0], phase[:,1]
     
-    phase_bins, phase_heights, amp_bins, amp_heights = filename # change to however the file should be opened
-    phase_draws, amp_draws = draw_random_errors(phase_bins, phase_heights, amp_bins, amp_heights, output_shape)
+    phase_draws, amp_draws = draw_random_errors(radians, phase_errors, percentages, amp_errors, output_shape)
+
+    G = (1+amp_draws/100)*np.exp(1j*phase_draws)
     
-    return phase_draws, amp_draws
+    return G
