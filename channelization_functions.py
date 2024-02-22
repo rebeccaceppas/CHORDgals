@@ -297,11 +297,6 @@ def channelize_catalogue(U, fstate, nside, catalogue_filepath, R_filepath, norm_
     # generating heights
     heights = upchannelize(profiles, U, R_filepath, norm_filepath)
 
-    # setting profiles out of range back to 0 after numerical artifacts added by up-channelization
-    for i, p in enumerate(profiles):
-        if np.all(p <=1e-10):
-            heights[i] = np.zeros_like(heights[i])
-
     pol = 'full'
     map_catalog(fstate, np.flip(heights, axis=1), nside, pol, ra, dec, filename=save_title, write=True)
 
